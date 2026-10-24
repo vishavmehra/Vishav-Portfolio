@@ -38,6 +38,7 @@
  */
 import * as THREE from 'three'
 
+import { CARD_SPOTS, solveSpot } from '@/portfolio/journey/cardSpots'
 import { sampleCameraPath, stepJourney } from '@/portfolio/journey/journey'
 
 /**
@@ -175,6 +176,9 @@ export function mountWorldScene(): () => void {
 
   var renderer, scene, camera;
   var nearGroup, farGroup, stemGroup, motes, shadowMesh, glowMesh;
+  /* The spine's centreline (the chapter branches grow out of it) and the
+     branches themselves, rebuilt by layout() when the spine moves. */
+  var stemLimb = null, hostLimbs = [], branches = [], branchKey = '', branchTimer = 0;
   var W = 1, H = 1, DIST = 1400;
   var poleTex = null;
   var scanning = false, scanT = 0, scanMax = 3000;
@@ -1270,6 +1274,7 @@ export function mountWorldScene(): () => void {
   var uWind  = { value: REDUCED ? 0.0 : 1.0 };
   var uMouseNear = { value: new THREE.Vector3(9999, 9999, 9999) };
   var uMouseFar  = { value: new THREE.Vector3(9999, 9999, 9999) };
+  var uMouseBranch = { value: new THREE.Vector3(9999, 9999, 9999) };
   /* the survey pulse — shared by every material so one write moves them all */
   var uScanO  = { value: new THREE.Vector3(-900, -260, 240) };
   var uScanR  = { value: 0 };
@@ -1524,6 +1529,9 @@ export function mountWorldScene(): () => void {
     /* ---- near root ---- */
     var nearLimbs = buildNearRoot();
     var mainCount = nearLimbs.length;
+    /* The root's three main limbs share the spine's box and pin, so the
+       chapter branches can grow out of either in the same coordinates. */
+    hostLimbs = nearLimbs.slice(0, mainCount);
     /* a scatter of stubby offshoots, so the tubes never read as hoses */
     var hp = new THREE.Vector3(), hn = new THREE.Vector3();
     var extra = [];
@@ -1588,7 +1596,7 @@ export function mountWorldScene(): () => void {
        bark repeat and planting counts grow with the length (x1.52) so the
        visible stretch keeps the same density as before. */
     stemGroup = assembleRoot([
-      makeLimb(makeP(ARCH.aspect), [
+      stemLimb = makeLimb(makeP(ARCH.aspect), [
         [0.752, 0.163,  0.02],          /* meets the arch leg's foot */
         [0.742, 0.330,  0.10],
         [0.700, 0.560,  0.16],
@@ -2349,6 +2357,168 @@ export function mountWorldScene(): () => void {
      root can be pinned to the same stage coordinates the copy is laid out
      on. Each root is modelled in its own 10-unit-wide box and scaled into
      place around a pinned landmark, exactly as the artwork was. */
+  /* ── chapter branches ──────────────────────────────────────────────────
+     One branch per chapter card, grown out of the spine. Each leaves the
+     spine at the height of one edge of its card, crosses to the card, runs
+     behind that edge and finishes in a tapered tip just past the far side,
+     with one small offshoot. The cards are DOM in front of the canvas, so the
+     wood can only ever be behind them.
+
+     Built by the same assembleRoot as the roots (same bark, moss, ferns and
+     flowers, one draw call each), in the spine's own local frame, so the
+     shading and haze match the stem they come from. Card positions come from
+     cardSpots.ts, the numbers the DOM cards are placed with. */
+  var IDENT = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+
+  function dropBranches() {
+    branches.forEach(function (br) {
+      var old = br.group;
+      QUALITY.blades = QUALITY.blades.filter(function (b) { return b.mesh.parent !== old; });
+      old.traverse(function (o) {
+        if (!o.isMesh) return;
+        var i = QUALITY.fbmMats.indexOf(o.material);
+        if (i !== -1) QUALITY.fbmMats.splice(i, 1);
+        o.geometry.dispose();
+        if (o.material.uniforms && o.material.uniforms.uMap && o.material.uniforms.uMap.value) o.material.uniforms.uMap.value.dispose();
+        o.material.dispose();
+      });
+      scene.remove(old);
+    });
+    branches = [];
+  }
+
+  /* Samples of the wood a branch may grow out of: the spine and the root's
+     main limbs, all in the spine's local frame. Only their solid middles —
+     a branch sprouting from a limb's tapering tip reads as two ends glued
+     together. */
+  function hostSamples() {
+    var out = [];
+    [stemLimb].concat(hostLimbs).forEach(function (L) {
+      for (var s = 0; s <= 160; s++) out.push(L.curve.getPointAt(0.1 + 0.72 * s / 160));
+    });
+    return out;
+  }
+
+  function buildBranches(narrow, u) {
+    dropBranches();
+    stemGroup.updateMatrixWorld(true);
+
+    var hosts = hostSamples();
+    var S = stemGroup.scale.x;
+    var small = narrow || (window.innerWidth * window.innerHeight) < 620000;
+    var step = LADDER[QUALITY.level];
+    var cardEls = hero.querySelectorAll('.card');
+
+    CARD_SPOTS.forEach(function (spot, idx) {
+      var sol = solveSpot(spot, narrow);
+      /* the card's drawn width, in the spine's units (world.css: narrow cards
+         are min(cw*u*1.9, 84vw) and drawn at 1/k; wide ones at cw*u) */
+      var w = (narrow ? Math.min(spot.w * u * 1.9, 0.84 * W) / sol.k : spot.w * u) / S;
+      /* the real proportions of the card, from its own box */
+      var el = cardEls.length === CARD_SPOTS.length ? cardEls[idx] : null;
+      var h = w * (el && el.offsetWidth ? el.offsetHeight / el.offsetWidth : 0.64);
+      var c = stemGroup.worldToLocal(new THREE.Vector3(sol.sx, -sol.sy, spot.cz));
+      var zb = stemGroup.worldToLocal(new THREE.Vector3(sol.sx, -sol.sy, spot.cz - 70)).z;
+      /* alternate edges, so the six do not read as one repeated motif */
+      var e = idx % 2 ? 1 : -1;
+      /* Outside the edge, because the wood is behind the card. Moss grows on
+         the upper side, so under a card the branch drops a whole branch-depth
+         clear to show its cushion; over a card it sits tucked against the
+         edge, as if the card were resting in it. */
+      var off = e < 0 ? 0.34 + 0.02 * w : 0.02 * w - 0.04;
+      var ey = c.y + e * (0.5 * h + off);
+
+      /* grow from the nearest wood to either corner of that edge */
+      var a = hosts[0], best = Infinity, side = 1;
+      for (var j = 0; j < hosts.length; j++) {
+        var hp = hosts[j];
+        for (var sd = -1; sd <= 1; sd += 2) {
+          var dx = hp.x - (c.x + sd * 0.5 * w), dy = hp.y - ey;
+          var d2 = dx * dx + dy * dy;
+          if (d2 < best) { best = d2; a = hp; side = sd; }
+        }
+      }
+      var dir = -side;                                  /* travel from that corner across the card */
+      var nearX = c.x - dir * 0.5 * w;
+      var farX = c.x + dir * (0.5 * w + off);
+
+      /* starts inside the host's wood, so the joint shows no end */
+      var pts = [[a.x, a.y, a.z - 0.05]];
+      var gap = Math.hypot(nearX - a.x, ey - a.y);
+      if (gap > 0.35 * w) {
+        /* a longer reach bends twice rather than running straight */
+        var mx = (a.x + nearX) / 2, my = (a.y + ey) / 2;
+        var nx = -(ey - a.y) / gap, ny = (nearX - a.x) / gap;
+        var bow = Math.min(0.12 * w, 0.18 * gap);
+        pts.push([a.x + (mx - a.x) * 0.5 + nx * bow, a.y + (my - a.y) * 0.5 + ny * bow, (a.z * 3 + zb) / 4]);
+        pts.push([mx - nx * bow * 0.6, my - ny * bow * 0.6, (a.z + zb) / 2]);
+      }
+      /* along the edge, round the far corner, part way up the far side */
+      pts.push([nearX - dir * 0.04 * w, ey + e * 0.01 * w, zb]);
+      pts.push([c.x - dir * 0.12 * w, ey - e * 0.012 * w, zb]);
+      pts.push([c.x + dir * 0.30 * w, ey + e * 0.008 * w, zb]);
+      pts.push([farX - dir * 0.03 * w, ey - e * 0.035 * w, zb]);
+      pts.push([farX, c.y + e * 0.24 * h, zb]);
+      pts.push([farX - dir * 0.04 * w, c.y + e * 0.02 * h, zb]);
+
+      var limb = makeLimb(IDENT, pts, {
+        segs: 140, radial: 14, vScale: 20, sink: 0.25, tip: [0, 0.22],
+        rw:   function (t) { return 0.12 * (1 - 0.4 * t) * knot(t, 0.05, 0.022); },
+        moss: function (t) { return 0.24 * (1 - 0.4 * t); }
+      });
+
+      /* one offshoot off the corner, reaching away from the card */
+      var twigs = [];
+      var t0 = 0.70;
+      var p0 = limb.curve.getPointAt(t0);
+      var odir = new THREE.Vector3(dir * 0.8, e * 0.6, 0.1).normalize();
+      growOffshoot(twigs, p0, odir, 0.2 * w, limb.rw(t0) * 0.6, 0);
+
+      var group = assembleRoot([limb].concat(twigs), {
+        /* alpha just under 1 makes the group blendable, so it can fade with
+           its card without a second material */
+        aspect: ARCH.aspect, haze: 0.15, fog: 0.04, alpha: 0.999, order: 1.5,
+        blades: small ? 5000 : 9000, ferns: small ? 1 : 2, flowers: small ? 4 : 7,
+        fernSize: [0.16, 0.32], flowerSize: [0.045, 0.085], mainLimbs: 1, wire: false,
+        mouse: uMouseBranch, mouseR: 1.0
+      });
+      group.position.copy(stemGroup.position);
+      group.scale.copy(stemGroup.scale);
+      group.visible = false;
+      scene.add(group);
+
+      /* join the governor at whatever level it has already settled on */
+      group.traverse(function (o) {
+        if (!o.isMesh) return;
+        var m = o.material;
+        if (m && m.fragmentShader && m.fragmentShader.indexOf('FBM_OCT') !== -1) {
+          QUALITY.fbmMats.push(m);
+          m.defines = m.defines || {};
+          if (m.defines.FBM_OCT !== step[2]) { m.defines.FBM_OCT = step[2]; m.needsUpdate = true; }
+        }
+        if (o.geometry && o.geometry.isInstancedBufferGeometry && o.geometry.instanceCount > 1000) {
+          var full = o.geometry.instanceCount;
+          QUALITY.blades.push({ mesh: o, full: full });
+          o.geometry.instanceCount = Math.max(1, Math.round(full * step[1]));
+        }
+      });
+
+      branches.push({ group: group, at: spot.at });
+    });
+  }
+
+  /* Branches follow the spine, so they are rebuilt when it moves. A resize
+     fires many times, so only the first build is immediate. */
+  function placeBranches(narrow, u) {
+    var key = (narrow ? 'n' : 'w') + Math.round(stemGroup.scale.x * 10) + ',' +
+              Math.round(stemGroup.position.x) + ',' + Math.round(stemGroup.position.y);
+    if (key === branchKey) return;
+    branchKey = key;
+    clearTimeout(branchTimer);
+    if (!branches.length) { buildBranches(narrow, u); return; }
+    branchTimer = setTimeout(function () { if (alive()) buildBranches(narrow, u); }, 450);
+  }
+
   function layout() {
     W = hero.clientWidth; H = hero.clientHeight;
     renderer.setSize(W, H, false);
@@ -2385,6 +2555,7 @@ export function mountWorldScene(): () => void {
     /* Same box and same pin as the near root, so the spine stays welded to the
        arch it grows out of at every breakpoint rather than drifting off it. */
     place(stemGroup, A, 0.732, 0.06, 0);
+    placeBranches(narrow, u);
 
     var aw = A.w * u * cover, ah = aw / A.aspect;
     var cx = wx(A.left + 0.5 * A.w), cy = wy(A.top + 0.5 * (A.w / A.aspect));
@@ -2427,7 +2598,7 @@ export function mountWorldScene(): () => void {
       raycaster.setFromCamera(ndc, camera);
       mouseLive = !!raycaster.ray.intersectPlane(crownPlane, hitWorld);
     }
-    [[nearGroup, uMouseNear], [farGroup, uMouseFar]].forEach(function (pair) {
+    [[nearGroup, uMouseNear], [farGroup, uMouseFar], [branches.length ? branches[0].group : null, uMouseBranch]].forEach(function (pair) {
       var g = pair[0], u2 = pair[1];
       if (!g) return;
       if (!mouseLive) { u2.value.set(9999, 9999, 9999); return; }
@@ -2625,6 +2796,20 @@ export function mountWorldScene(): () => void {
         }
         wireMeshes.length = 0;
       }
+    }
+
+    /* The branches belong to the chapters: absent from the hero composition,
+       gone again before the closing, so both keep the frame they were
+       composed with. */
+    for (var bi = 0; bi < branches.length; bi++) {
+      var br = branches[bi];
+      var bd = jp - br.at;
+      /* the card's own window (world.css .card --vis), a little softer:
+         whole within ±0.04 of its chapter, gone by ±0.09, so nothing of
+         About reaches the hero */
+      var ba = Math.min(1, Math.max(0, 1.8 - Math.abs(bd) * 20));
+      br.group.userData.uni.uAlpha.value = ba;
+      br.group.visible = ba > 0.002;
     }
 
     if (bf && !REDUCED) bf(dt, uTime.value);
