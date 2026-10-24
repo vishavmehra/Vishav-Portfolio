@@ -1,86 +1,87 @@
-# Vishav Mehra — Portfolio
+# Vishav Mehra's portfolio
 
-A personal portfolio built as two connected 3D experiences in the browser: a small
-exploration game, and a scroll-driven world that holds the portfolio itself.
+My personal portfolio. It has two parts that run in the browser: a small 3D
+exploration game, and a scroll-driven 3D scene that holds the portfolio itself.
 
-**Live:** https://vishav-portfolio-five.vercel.app
-
----
+Live site: https://vishav-portfolio-five.vercel.app
 
 ## What's inside
 
-### The world — `/`
+### The game (`/`)
 
-A small third-person exploration game. You walk a stylised valley with paths, a
-bridge, a river and trees, towards four destinations: **Projects**, **Experience**,
-**Education** and **Achievements**. A compass points to destinations that are out
-of view. A time-of-day selector switches between morning, afternoon, evening and
-night. Holding **X** (or the **Exit** button on touch screens) leaves the world for
-the portfolio.
+A small third-person exploration game. You walk through a valley with paths, a
+bridge, a river and trees. There are four places to visit: Projects, Experience,
+Education and Achievements. Walk up to one and press E (or the Interact button on
+a phone) to open a window with that part of the portfolio. A compass at the top
+points to places that are off screen, and a selector on the left switches between
+morning, afternoon, evening and night. Hold X (or tap Exit on a phone) to leave
+the game and go to the portfolio.
 
-### The portfolio — `/portfolio`
+### The portfolio (`/portfolio`)
 
-A WebGL scene of a procedural, moss-covered root system with instanced moss blades,
-ferns, flowers and drifting motes. Scrolling moves one camera down it. Each chapter
-(About, Experience, Projects, Education, Skills, Achievements) has a card standing
-in the scene where the camera arrives. Opening a card shows that section as a
-swipeable card carousel, and the **Explore** menu jumps straight to any chapter.
+A WebGL scene of tree roots covered in moss, ferns and small flowers. Scrolling
+moves the camera down through it. Each section (About, Experience, Projects,
+Education, Skills, Achievements) has a card in the scene at the point where the
+camera stops. Click a card to open that section, then swipe or use the arrows to
+go through its entries. The Explore menu in the top left jumps straight to any
+section.
 
-Both work on phones as well as desktops. The game has touch controls, the carousel
-supports swiping, and the layouts fit screens down to 320 px wide.
+Both parts work on phones and desktops, down to 320 px wide screens.
 
 ## Controls
 
-**World (`/`)**
+The game:
 
-| Action        | Desktop                     | Touch                  |
-| ------------- | --------------------------- | ---------------------- |
-| Enter         | Click, or press `X`         | Tap                    |
-| Move          | `W` `A` `S` `D` / arrow keys | Joystick               |
-| Sprint / jump | `Shift` / `Space`           | —                      |
-| Look around   | Mouse (`Ctrl` pauses it)    | Drag on the right side |
-| Interact      | `E`                         | Interact button        |
-| Leave world   | Hold `X`                    | Exit button            |
+| Action        | Desktop                      | Phone                  |
+| ------------- | ---------------------------- | ---------------------- |
+| Enter         | Click, or press `X`          | Tap                    |
+| Move          | `W` `A` `S` `D` or arrow keys | Joystick               |
+| Sprint, jump  | `Shift`, `Space`             | Not available          |
+| Look around   | Mouse (hold `Ctrl` to pause) | Drag on the right side |
+| Interact      | `E`                          | Interact button        |
+| Close window  | `Esc` or the × button        | The × button           |
+| Leave         | Hold `X`                     | Exit button            |
 
-**Portfolio (`/portfolio`)**
+The portfolio:
 
-| Action                | How                                                  |
-| --------------------- | ---------------------------------------------------- |
-| Travel                | Scroll or swipe                                      |
-| Jump to a chapter     | **Explore** menu, top left                           |
-| Open a section        | Click or tap its card                                |
-| Move between cards    | Swipe, the arrows, or `←` `→`                        |
-| Close                 | `Esc`, the × button, or tap anywhere outside the card |
+| Action             | How                                              |
+| ------------------ | ------------------------------------------------ |
+| Move through it    | Scroll or swipe                                  |
+| Go to a section    | Explore menu, top left                           |
+| Open a section     | Click or tap its card                            |
+| Next or previous   | Swipe, the arrow buttons, or `←` `→`             |
+| Close              | `Esc`, the × button, or tap outside the card     |
 
-## How it's built
+## How it works
 
-- **One renderer, one scene and one frame loop per route.** Anything that changes
-  every frame (player, camera, scroll progress) stays outside React state, so
-  React only re-renders when the interface actually changes.
-- **HTML and WebGL share one coordinate system.** The portfolio camera's field of
-  view is set so one world unit equals one CSS pixel at depth 0, and the cards use
-  the same 1400 px CSS perspective. Plain HTML cards therefore sit inside the 3D
-  scene and move with it, with no second renderer.
-- **The journey is a single number.** Scroll position becomes a 0 → 1 progress
-  value that drives the camera path. Every card's reveal is computed in CSS from
-  that same value.
-- **Adaptive quality.** A governor watches frame time and lowers render
-  resolution, moss density and shader detail when a device falls behind. It raises
-  them again when there is headroom.
-- **One input path.** Keyboard and touch both feed the same movement logic in the
-  game.
+Each page has one renderer, one scene and one animation loop. Values that change
+every frame, like the player's position, the camera and the scroll position, are
+kept outside React state, so React only re-renders when the interface changes.
 
-## Tech stack
+In the portfolio, the HTML cards and the 3D scene line up without a second
+renderer. The camera's field of view is set so that one unit in the scene is one
+CSS pixel at depth 0, and the cards use the same 1400 px CSS perspective as the
+camera.
 
-- [Next.js 16](https://nextjs.org) (App Router, Turbopack), React 19, TypeScript
-- [three.js](https://threejs.org), with [React Three Fiber](https://r3f.docs.pmnd.rs) for the game world
-- [Tailwind CSS 4](https://tailwindcss.com)
-- [Framer Motion](https://motion.dev) and [opentype.js](https://opentype.js.org) for the animated signature
-- Hosted on [Vercel](https://vercel.com)
+The scroll position becomes one number between 0 and 1. That number moves the
+camera along its path, and CSS uses the same number to fade each card in and out.
 
-## Getting started
+If a device can't keep up, the scene lowers its resolution, the amount of moss and
+the shader detail, and raises them again when there is room.
 
-Requires **Node.js 20.9 or newer** (the minimum for Next.js 16) and npm.
+In the game, the keyboard and the touch joystick feed the same movement code.
+
+## Built with
+
+- Next.js 16 (App Router, Turbopack), React 19, TypeScript
+- three.js, with React Three Fiber for the game
+- Tailwind CSS 4
+- Framer Motion and opentype.js for the animated signature
+- Vercel for hosting
+
+## Running it locally
+
+You need Node.js 20.9 or newer and npm.
 
 ```bash
 git clone https://github.com/vishavmehra/Vishav-Portfolio.git
@@ -89,61 +90,59 @@ npm install
 npm run dev
 ```
 
-Then open <http://localhost:3000> for the game or <http://localhost:3000/portfolio>
-for the portfolio. No environment variables are needed.
+Open http://localhost:3000 for the game or http://localhost:3000/portfolio for
+the portfolio. No environment variables are needed.
 
-| Script              | What it does                         |
-| ------------------- | ------------------------------------ |
-| `npm run dev`       | Development server with hot reload   |
-| `npm run build`     | Production build                     |
-| `npm start`         | Serve the production build           |
-| `npm run typecheck` | Type-check the project (`tsc --noEmit`) |
+| Command             | What it does                        |
+| ------------------- | ----------------------------------- |
+| `npm run dev`       | Starts the dev server               |
+| `npm run build`     | Builds for production               |
+| `npm start`         | Serves the production build         |
+| `npm run typecheck` | Checks types with `tsc --noEmit`    |
 
-> Stop the dev server before running `npm run build`. Both write to `.next/`, and
-> a dev server left running during a build serves pages without their CSS.
+Stop the dev server before you run `npm run build`. Both use the `.next/` folder,
+and if the dev server keeps running during a build, its pages load without CSS.
 
-## Project structure
+## Folders
 
 ```
 src/
-  app/              routes (/ and /portfolio), root layout, global styles
-  game/             the 3D world: terrain, vegetation, player, camera, collision, interaction
+  app/              the two pages, the root layout and global styles
+  game/             the 3D game: terrain, plants, player, camera, collision, interaction
   input/            keyboard and touch input
-  ui/               game HUD, loading screen, touch controls, world-to-portfolio transition
+  ui/               game interface: loading screen, HUD, touch controls, windows, page transition
   portfolio/
-    data/           all portfolio content
-    world/          the WebGL scene and its stylesheet
-    journey/        scroll progress, camera path, card placement
-    ui/             cards, navigator, section carousel, signature
-    state/          the current selection
-  components/ui/    third-party UI components, vendored
+    data/           all portfolio text
+    world/          the 3D scene and its styles
+    journey/        scroll position, camera path, card positions
+    ui/             cards, menu, section carousel, signature
+    state/          which section is open
+  components/ui/    UI components from other projects
 public/
-  assets/3d/        GLB models loaded by the game
+  assets/3d/        3D models used by the game
   resume/           résumé PDF
 ```
 
-### Editing the content
+All the text in the portfolio and in the game's windows comes from
+`src/portfolio/data/`. To change what it says, edit those files.
 
-Every piece of text the portfolio shows comes from `src/portfolio/data/`: profile,
-experience, projects, education, skills and achievements. Edit those files. The
-scene and the interface only read them.
+## Deploying
 
-## Deployment
-
-Any Next.js host works: run `npm run build`, then `npm start`. The live site is
-deployed to Vercel from the project root with `vercel --prod`.
+It's a normal Next.js app, so any host that runs Next.js works: run
+`npm run build`, then `npm start`. The live site is on Vercel and is deployed with
+`vercel --prod` from the project folder.
 
 ## Credits
 
-- The portfolio's moss-root scene is adapted from
-  [ThreeUI](https://threeui.com) by Meng To (MIT). The full licence is kept in the
-  header of `src/portfolio/world/scene.ts`.
-- The signature, text-repel and wheel-carousel components come from
-  [Componentry](https://componentry.dev) and are vendored in `src/components/ui/`.
-- The loading indicator uses [thinking-orbs](https://libraries.dev/orbs) by Jakub
+- The moss scene in the portfolio is adapted from [ThreeUI](https://threeui.com) by
+  Meng To, under the MIT licence. The licence text is at the top of
+  `src/portfolio/world/scene.ts`.
+- The signature, text repel and wheel menu components come from
+  [Componentry](https://componentry.dev). They are in `src/components/ui/`.
+- The loading animation uses [thinking-orbs](https://libraries.dev/orbs) by Jakub
   Antalik (MIT).
 
-## License
+## Licence
 
-© Vishav Mehra. All rights reserved. No licence is granted for this repository.
-The third-party code credited above keeps its own licence.
+© Vishav Mehra. All rights reserved. This repository has no licence. The
+third-party code listed above keeps its own licence.

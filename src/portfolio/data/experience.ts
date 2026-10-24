@@ -10,8 +10,8 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
   {
     id: 'siemens-associate',
     organisation: 'Siemens Digital Industries Software',
-    role: 'Software Engineer — Associate',
-    period: 'Jul 2026 — Present',
+    role: 'Software Engineer (Associate)',
+    period: 'Jul 2026 - Present',
     stack: ['C++', 'NX', 'Unit Testing'],
     points: [
       'Engineered license decomposition for NX Assembly Constraints, enabling feature-level licensing and reducing unnecessary dependency on higher-tier Assembly capabilities.',
@@ -23,7 +23,7 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
     id: 'siemens-intern',
     organisation: 'Siemens Digital Industries Software',
     role: 'Student Intern',
-    period: 'May 2025 — Jun 2026',
+    period: 'May 2025 - Jun 2026',
     stack: ['C++', 'NX', 'Unit Testing'],
     points: [
       'Engineered an AI-powered Assembly Search framework supporting structured queries, multi-condition filtering, result aggregation, and efficient retrieval across complex product structures.',
@@ -37,7 +37,7 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
     id: 'iit-kanpur',
     organisation: 'IIT Kanpur',
     role: 'Research Intern',
-    period: 'May 2025 — Sep 2025',
+    period: 'May 2025 - Sep 2025',
     stack: ['Python', 'Regex', 'Small Language Models', 'LLM', 'Reinforcement Learning'],
     points: [
       'Built a web scraping pipeline using Python to collect legal templates and clauses from online sources for AI tasks.',
@@ -50,7 +50,7 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
     id: 'salesforce',
     organisation: 'SalesForce',
     role: 'Developer Intern',
-    period: 'Oct 2023 — Nov 2023',
+    period: 'Oct 2023 - Nov 2023',
     stack: ['LWC', 'API', 'Apex Testing', 'CLI Setup', 'Process Automation'],
     points: [
       'Played a pivotal role in the establishment of a Salesforce Org, driving organizational efficiency.',

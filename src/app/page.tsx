@@ -1,6 +1,7 @@
 import { GameCanvas } from '@/game/GameCanvas'
 import { ExitHud } from '@/ui/exit/ExitHud'
 import { InteractButton } from '@/ui/controls/InteractButton'
+import { DestinationWindow } from '@/ui/destination/DestinationWindow'
 import { MovementJoystick } from '@/ui/controls/MovementJoystick'
 import { CompassHUD } from '@/ui/hud/CompassHUD'
 import { ControlsTutorial } from '@/ui/hud/ControlsTutorial'
@@ -23,6 +24,7 @@ export default function Page() {
         <InteractButton />
         <ControlsTutorial />
         <ExitHud />
+        <DestinationWindow />
       </WhenEntered>
       <LoadingScreen />
     </main>

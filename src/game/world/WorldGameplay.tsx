@@ -58,6 +58,7 @@ function debugEnabled() {
  */
 export function WorldGameplay() {
   const camera = useThree((state) => state.camera)
+  const scene = useThree((state) => state.scene)
   const [registered, setRegistered] = useState(false)
   const [debug] = useState(debugEnabled)
 
@@ -84,11 +85,17 @@ export function WorldGameplay() {
   // Interacting opens UI (M6), which needs the mouse: end any camera look and free the cursor.
   useEffect(() => onInteraction(() => releaseLook()), [])
 
-  // No destination window exists yet (M6); make interactions visible in development.
+  // Development only: log interactions, and expose the player for browser
+  // automation (teleporting to a destination to test its window).
   useEffect(() => {
     if (process.env.NODE_ENV === 'production') return
-    return onInteraction((i) => console.info(`[interaction] ${i.type} (${i.id})`))
-  }, [])
+    ;(window as unknown as { __game?: object }).__game = { playerPosition, scene }
+    const off = onInteraction((i) => console.info(`[interaction] ${i.type} (${i.id})`))
+    return () => {
+      off()
+      delete (window as unknown as { __game?: object }).__game
+    }
+  }, [scene])
 
   useFrame((state, delta) => {
     updateInteractions(playerPosition.x, playerPosition.z)

@@ -55,7 +55,7 @@ export const CARDS: readonly CardContent[] = [
   {
     id: 'projects',
     label: 'Projects',
-    title: 'Things built',
+    title: 'Projects I have built',
     teaser: list(PROJECTS_BY_RECENCY.map((p) => p.title), 2),
     plate: VISUALS.projects,
   },
@@ -68,15 +68,15 @@ export const CARDS: readonly CardContent[] = [
   {
     id: 'skills',
     label: 'Skills',
-    title: 'What I work with',
+    title: 'Technical skills',
     teaser: SKILLS.map((g) => g.group).join(' · '),
   },
   {
     id: 'achievements',
     label: 'Achievements',
-    title: 'What came of it',
+    title: 'Contests and programs',
     teaser: list(
-      ACHIEVEMENTS.map((a) => a.title.split(' — ')[0]),
+      ACHIEVEMENTS.map((a) => a.title.split(' (')[0]),
       2,
     ),
   },

@@ -63,7 +63,7 @@ const about: ContentSection = {
 const experience: ContentSection = {
   id: 'experience',
   kicker: 'Experience',
-  title: 'Where the work happened',
+  title: 'Work experience',
   cards: EXPERIENCE.map((role) => ({
     id: role.id,
     kicker: role.role,
@@ -78,7 +78,7 @@ const experience: ContentSection = {
 const projects: ContentSection = {
   id: 'projects',
   kicker: 'Projects',
-  title: 'Things built',
+  title: 'Projects I have built',
   cards: PROJECTS_BY_RECENCY.map((project) => ({
     id: project.id,
     kicker: project.category === 'research' ? 'Research' : 'Project',
@@ -92,7 +92,7 @@ const projects: ContentSection = {
 const education: ContentSection = {
   id: 'education',
   kicker: 'Education',
-  title: 'Where it was learnt',
+  title: 'Degrees',
   cards: EDUCATION.map((entry, i) => ({
     id: `edu-${i}`,
     kicker: entry.qualification,
@@ -108,7 +108,7 @@ const education: ContentSection = {
 const skills: ContentSection = {
   id: 'skills',
   kicker: 'Skills',
-  title: 'What I work with',
+  title: 'Technical skills',
   cards: SKILLS.map((group) => ({
     id: `skills-${group.group}`,
     kicker: 'Skills',
@@ -121,7 +121,7 @@ const skills: ContentSection = {
 const achievements: ContentSection = {
   id: 'achievements',
   kicker: 'Achievements',
-  title: 'What came of it',
+  title: 'Contests and programs',
   cards: ACHIEVEMENTS.map((entry) => ({
     id: entry.id,
     kicker: 'Achievement',

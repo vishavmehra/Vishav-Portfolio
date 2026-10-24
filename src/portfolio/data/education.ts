@@ -7,7 +7,7 @@ export const EDUCATION: readonly EducationEntry[] = [
     qualification: 'Master of Technology, Computer Science and Engineering',
     specialisation: 'Information Security and Privacy',
     place: 'Surat, Gujarat',
-    period: '2024 — 2026',
+    period: '2024 - 2026',
     cgpa: '8.57',
   },
   {
@@ -15,7 +15,7 @@ export const EDUCATION: readonly EducationEntry[] = [
     qualification: 'Bachelor of Technology, Information Technology',
     specialisation: 'Network and Information Security',
     place: 'New Delhi',
-    period: '2020 — 2024',
+    period: '2020 - 2024',
     cgpa: '7.59',
   },
 ] as const
