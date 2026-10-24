@@ -1,0 +1,1364 @@
+@import 'tailwindcss';
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  /* The first paint of the entry screen, before the canvas has drawn a frame:
+     deep forest, so nothing ever flashes pale on the way in. */
+  background: #0d1310;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+  /* The canvas is a drag surface for camera look: no text selection or iOS callout. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * The title screen (CLAUDE.md §5, docs/05 §3).
+ *
+ * A shot of the world with the name standing in it. The canvas behind this draws
+ * the real forest from the first frame — everything here is the layer over it: a
+ * scrim that opens with real progress, the name as Componentry particles in the
+ * signature face, and one way in.
+ *
+ * Tokens: forest #111814 / #1B241D, sage #8F9B82, ivory #F4ECD8 / #E8DFC9,
+ * amber #F0932B (focus only — amber stays an interaction colour).
+ */
+
+/* The face Componentry's Signature component loads; here it is what the particle
+   sampler rasterises, so the name keeps its signature character. */
+@font-face {
+  font-family: 'Lastoria';
+  src: url('/LastoriaBoldRegular.otf') format('opentype');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+.entry {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.25rem calc(2rem + env(safe-area-inset-bottom)) 1.25rem;
+  color: #f4ecd8;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  /* The shot behind stays live: only the name and the control take the pointer. */
+  pointer-events: none;
+  touch-action: none;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.entry[data-phase='ready'] {
+  opacity: 0;
+}
+
+/*
+ * The scrim. Deep forest at the first paint — server-rendered, so the page never
+ * flashes pale — lifting to a vignette as the assets land, with a soft pool of
+ * light behind the name so it reads against the trees. `--entry-reveal` is real
+ * progress, 0…1, written from the loading store.
+ */
+.entry-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      58% 42% at 50% 46%,
+      rgba(70, 86, 58, calc(0.2 * var(--entry-reveal, 0))) 0%,
+      rgba(17, 24, 20, 0) 70%
+    ),
+    radial-gradient(
+      120% 85% at 50% 42%,
+      rgba(17, 24, 20, calc(0.34 - 0.2 * var(--entry-reveal, 0))) 0%,
+      rgba(17, 24, 20, calc(0.62 - 0.26 * var(--entry-reveal, 0))) 55%,
+      rgba(10, 15, 12, calc(0.92 - 0.24 * var(--entry-reveal, 0))) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(12, 18, 14, calc(0.55 - 0.28 * var(--entry-reveal, 0))) 0%,
+      rgba(12, 18, 14, calc(0.22 - 0.14 * var(--entry-reveal, 0))) 40%,
+      rgba(9, 14, 11, calc(0.8 - 0.18 * var(--entry-reveal, 0))) 100%
+    );
+}
+
+.entry-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* --- the name ------------------------------------------------------------ */
+
+.entry-name {
+  position: relative;
+  margin: 0;
+  width: 100%;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* The accessible name. A canvas has no text in it. */
+.entry-name-reader {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.entry-name-particles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/*
+ * Each line's container is what sets the type size: the Componentry component
+ * caps its font at 15% of the container width, so the line is given more width
+ * than the glyphs need and they grow into it. Overflow is hidden on `.entry`.
+ */
+.entry-name-line {
+  display: block;
+  width: min(96vw, 84rem);
+  /* Room for the ascenders and descenders of a script face — the sampler clips
+     whatever the box cannot hold — and room around them for the particles to be
+     pushed into when the cursor arrives. */
+  height: clamp(12rem, 32vh, 20rem);
+  pointer-events: auto;
+}
+
+.entry-name[data-stacked] .entry-name-line {
+  /* Stacked: two shorter words, each given a container wider than the screen so
+     the glyphs stay large instead of collapsing into a heading. */
+  width: 168vw;
+  margin-inline: -34vw;
+  height: clamp(9.5rem, 26vh, 14rem);
+}
+
+/* The component's own wrapper carries a min-height; this is the override. */
+.entry-name-canvas {
+  min-height: 0 !important;
+  height: 100%;
+}
+
+/* Shown until the signature face has loaded, and in the error state. */
+.entry-name-plain {
+  display: block;
+  font-family: 'Lastoria', 'Segoe Script', cursive;
+  font-size: clamp(2.75rem, 11vw, 8rem);
+  color: #f4ecd8;
+  line-height: 1.1;
+}
+
+.entry-role {
+  margin: 0.25rem 0 0;
+  color: rgba(232, 223, 201, 0.5);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  text-transform: uppercase;
+}
+
+/* --- loading ------------------------------------------------------------- */
+
+.entry-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 2.5rem;
+}
+
+/* A hairline of light, not a progress bar on a page. */
+.entry-line {
+  position: relative;
+  width: min(17rem, 62vw);
+  height: 1px;
+  background: rgba(232, 223, 201, 0.16);
+  overflow: hidden;
+}
+
+.entry-line span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(143, 155, 130, 0.5), rgba(244, 236, 216, 0.92));
+  box-shadow: 0 0 12px rgba(244, 236, 216, 0.45);
+}
+
+.entry-percent {
+  margin: 0;
+  color: rgba(232, 223, 201, 0.45);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.16em;
+}
+
+/* --- the way in ---------------------------------------------------------- */
+
+.entry-enter {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 2rem;
+  padding: 0.9rem 1.75rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  /* Dark glass under the words: ivory on green needs its own ground to sit on. */
+  background: rgba(10, 16, 12, 0.46);
+  backdrop-filter: blur(4px);
+  color: #f4ecd8;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.entry-enter-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(8, 14, 10, 0.85);
+}
+
+/* The second line: how to do it, said once and quietly. */
+.entry-enter-hint {
+  color: rgba(232, 223, 201, 0.52);
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 8px rgba(8, 14, 10, 0.8);
+}
+
+.entry-enter:hover .entry-enter-hint,
+.entry-enter:focus-visible .entry-enter-hint {
+  color: rgba(244, 236, 216, 0.78);
+}
+
+/* Click is named where a mouse exists; touch is told to tap. */
+.entry-enter-tap {
+  display: none;
+}
+
+/*
+ * One dry line at the foot of the screen, and the only joke in the product
+ * (CLAUDE.md §5 — asked for explicitly). It names something the visitor will
+ * actually meet about ten seconds later.
+ */
+.entry-aside {
+  margin: 1.5rem 0 0;
+  color: rgba(232, 223, 201, 0.34);
+  font-size: 0.6875rem;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 8px rgba(8, 14, 10, 0.8);
+}
+
+/* A ring with a light in it. No arrow. */
+.entry-mark {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid rgba(180, 196, 160, 0.5);
+  border-radius: 50%;
+}
+
+.entry-mark-dot {
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: rgba(244, 236, 216, 0.85);
+}
+
+.entry-enter:hover,
+.entry-enter:focus-visible {
+  background: rgba(16, 26, 18, 0.58);
+}
+
+.entry-enter:hover .entry-mark,
+.entry-enter:focus-visible .entry-mark {
+  border-color: rgba(206, 220, 186, 0.9);
+  box-shadow: 0 0 16px rgba(126, 156, 108, 0.45);
+  transform: scale(1.12);
+}
+
+.entry-enter:hover .entry-mark-dot,
+.entry-enter:focus-visible .entry-mark-dot {
+  background: #f4ecd8;
+  box-shadow: 0 0 10px rgba(244, 236, 216, 0.9);
+}
+
+.entry-enter:focus-visible {
+  outline: 2px solid #f0932b;
+  outline-offset: 5px;
+}
+
+/* The key is named only where a key exists. */
+@media (pointer: coarse) {
+  .entry-enter {
+    padding: 1.05rem 2rem 1.2rem;
+  }
+
+  .entry-enter-click {
+    display: none;
+  }
+
+  .entry-enter-tap {
+    display: inline;
+  }
+}
+
+.entry-failed {
+  margin: 1.25rem 0 0;
+  color: rgba(232, 223, 201, 0.78);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+}
+
+@keyframes entry-breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(126, 156, 108, 0);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(126, 156, 108, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .entry {
+    transition: opacity 900ms ease;
+  }
+
+  /* The ring waits with the visitor rather than sitting still. */
+  .entry-mark {
+    animation: entry-breathe 4.5s ease-in-out infinite;
+  }
+
+  .entry-scrim {
+    transition: background 600ms linear;
+  }
+
+  .entry-line span {
+    transition: transform 400ms ease-out;
+  }
+
+  .entry-enter {
+    transition: background-color 220ms ease;
+  }
+
+  .entry-mark,
+  .entry-mark-dot {
+    transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease,
+      background-color 260ms ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry {
+    transition: opacity 120ms linear;
+  }
+}
+
+/* Virtual movement joystick. Quiet at rest; the world stays the focus. */
+.joystick {
+  position: fixed;
+  left: calc(1.75rem + env(safe-area-inset-left));
+  bottom: calc(1.75rem + env(safe-area-inset-bottom));
+  width: 116px;
+  height: 116px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid rgba(242, 233, 216, 0.5);
+  background: rgba(58, 49, 40, 0.14);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.joystick[data-active] {
+  cursor: grabbing;
+  border-color: rgba(240, 147, 43, 0.65);
+}
+
+.joystick-knob {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(242, 233, 216, 0.82);
+  border: 1.5px solid rgba(107, 94, 82, 0.35);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.joystick[data-active] .joystick-knob {
+  background: rgba(240, 147, 43, 0.9);
+  border-color: rgba(207, 127, 60, 0.9);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .joystick,
+  .joystick-knob {
+    transition: border-color 140ms ease, background-color 140ms ease;
+  }
+}
+
+/*
+ * Interaction prompt (docs/05 §4). A small warm pill anchored above the active
+ * destination; position is written to `transform` each frame from script.
+ * Colours are the docs/05 §2 tokens: surface #f2e9d8, ink #3a3128, accent #f0932b.
+ */
+.interaction-prompt {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.875rem 0.3125rem 0.3125rem;
+  border-radius: 999px;
+  background: rgba(242, 233, 216, 0.9);
+  color: #3a3128;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(58, 49, 40, 0.16);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.interaction-prompt[data-visible] {
+  opacity: 1;
+}
+
+/* Amber as a fill with ink on it (5.4:1) — never amber text on parchment. */
+.interaction-key {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 5px;
+  background: #f0932b;
+  color: #3a3128;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/*
+ * Compass (DD-29). A small parchment dial, top centre, clear of the bottom touch
+ * controls. Ink at rest; amber only on the marker while guidance is active.
+ * Marks and marker are full-width layers moved by translateX(%) from script, so
+ * positions never force layout.
+ */
+.compass {
+  position: fixed;
+  top: calc(0.75rem + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3125rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.compass-dial {
+  position: relative;
+  width: 196px;
+  height: 30px;
+  border-radius: 6px;
+  background: rgba(242, 233, 216, 0.78);
+  box-shadow: 0 2px 10px rgba(58, 49, 40, 0.14);
+  overflow: hidden;
+}
+
+.compass-scale,
+.compass-marker,
+.compass-mark {
+  position: absolute;
+  inset: 0 10px;
+}
+
+.compass-scale {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+}
+
+.compass-mark {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 5px 0 7px;
+  will-change: transform;
+}
+
+.compass-mark b {
+  color: #6f6151;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.compass-mark i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #8a7358;
+  opacity: 0.6;
+}
+
+/* The heading: a hairline notch at the top centre. */
+.compass-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.5px;
+  height: 4px;
+  margin-left: -0.75px;
+  background: #3a3128;
+  opacity: 0.55;
+}
+
+.compass-marker {
+  display: none;
+  place-items: end center;
+  padding-bottom: 3px;
+  will-change: transform;
+}
+
+.compass[data-target] .compass-marker {
+  display: grid;
+}
+
+.compass-marker i {
+  width: 9px;
+  height: 7px;
+  background: #6f6151;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.compass[data-emphasis='active'] .compass-marker i {
+  background: #f0932b;
+}
+
+/* Behind: a turn chevron pinned to the side to turn toward. */
+.compass[data-edge] .compass-marker {
+  place-items: center;
+  padding-bottom: 0;
+}
+
+.compass[data-edge] .compass-marker i {
+  width: 7px;
+  height: 11px;
+}
+
+.compass[data-edge='right'] .compass-marker i {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.compass[data-edge='left'] .compass-marker i {
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.compass-label {
+  margin: 0;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(242, 233, 216, 0.78);
+  color: #3a3128;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.compass[data-emphasis='active'][data-target] .compass-label {
+  opacity: 1;
+}
+
+@media (max-width: 360px) {
+  .compass-dial {
+    width: 164px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .compass-label {
+    transition: opacity 220ms ease;
+  }
+
+  .compass-marker i {
+    transition: background-color 220ms ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compass-label {
+    transition: opacity 80ms linear;
+  }
+}
+
+/* Contextual touch INTERACT button (docs/05 §11). */
+.interact-button {
+  position: fixed;
+  right: calc(1.75rem + env(safe-area-inset-right));
+  bottom: calc(2.25rem + env(safe-area-inset-bottom));
+  z-index: 10;
+  min-width: 6rem;
+  min-height: 56px;
+  padding: 0 1.25rem;
+  border: 0;
+  border-radius: 8px;
+  background: #f0932b;
+  color: #3a3128;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 10px rgba(58, 49, 40, 0.18);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.interact-button[data-visible] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.interact-button:active {
+  background: #cf7f3c;
+}
+
+.interact-button:focus-visible {
+  outline: 2px solid #3a3128;
+  outline-offset: 3px;
+}
+
+@media (pointer: coarse) {
+  .interaction-key {
+    display: none;
+  }
+
+  .interaction-prompt {
+    padding: 0.5rem 0.875rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .interaction-prompt,
+  .interact-button {
+    transition: opacity 150ms ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interaction-prompt,
+  .interact-button {
+    transition: opacity 80ms linear;
+  }
+}
+
+/* Time of day — same parchment/ink language as the compass, top-left of the HUD.
+   Top-left keeps it clear of the compass (top centre), the joystick (bottom left)
+   and the interact button (bottom right). */
+.time-control {
+  position: fixed;
+  left: calc(0.75rem + env(safe-area-inset-left));
+  top: calc(0.75rem + env(safe-area-inset-top));
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(242, 233, 216, 0.78);
+  box-shadow: 0 2px 10px rgba(58, 49, 40, 0.14);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.time-control button {
+  min-height: 30px;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6f6151;
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.time-control button:hover {
+  background: rgba(107, 94, 82, 0.12);
+}
+
+.time-control button[data-active] {
+  background: rgba(240, 147, 43, 0.85);
+  color: #3a3128;
+}
+
+/*
+ * Narrow and touch layouts: a vertical column down the left edge.
+ *
+ * Five labels in a row do not fit a phone — they wrapped into a block wide enough
+ * to sit under the compass and its destination name. A column is narrow (~86px),
+ * so it clears the compass overhead, the look region (the right half of the
+ * screen), the joystick and the interact button at every tested size.
+ */
+@media (pointer: coarse), (max-width: 640px) {
+  .time-control {
+    /* Below the compass dial and its label, which own the top of the screen. */
+    top: calc(5rem + env(safe-area-inset-top));
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .time-control button {
+    min-height: 40px;
+    padding: 0 0.625rem;
+    text-align: left;
+  }
+}
+
+/*
+ * Controls card (spec Part 4). Bottom centre: clear of the compass above, the
+ * time selector on the left, the joystick and interact button in the bottom
+ * corners, and the right half that touch look drags on. Dark and translucent so
+ * it reads as game HUD rather than as page furniture; amber only on the keycaps.
+ */
+.controls-card {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  z-index: 12;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  /* Never taller than what is left of the viewport above the card's own offset, so a
+     short window scrolls the list instead of cutting a row off. */
+  max-height: calc(100vh - 3rem - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+  max-height: calc(100dvh - 3rem - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0.75rem 0.875rem 0.875rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(242, 233, 216, 0.16);
+  border-radius: 10px;
+  background: rgba(30, 26, 22, 0.72);
+  color: #f2e9d8;
+  backdrop-filter: blur(6px);
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 1;
+}
+
+.controls-card[data-leaving] {
+  opacity: 0;
+}
+
+.controls-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(242, 233, 216, 0.62);
+}
+
+.controls-close {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -4px -4px -4px 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(242, 233, 216, 0.62);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.controls-close:hover {
+  background: rgba(242, 233, 216, 0.12);
+  color: #f2e9d8;
+}
+
+.controls-close:focus-visible {
+  outline: 2px solid #f0932b;
+  outline-offset: 2px;
+}
+
+.controls-rows {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  /* Only the list scrolls, and only when the rows do not fit: the heading and the
+     close button stay where they are. */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(242, 233, 216, 0.28) transparent;
+}
+
+.controls-rows::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-rows::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(242, 233, 216, 0.28);
+}
+
+.controls-rows > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.controls-rows dt {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.controls-rows dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: rgba(242, 233, 216, 0.78);
+}
+
+.controls-rows kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  padding: 0.1875rem 0.375rem;
+  border: 1px solid rgba(240, 147, 43, 0.5);
+  border-radius: 4px;
+  background: rgba(240, 147, 43, 0.14);
+  color: #f5c27a;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .controls-card {
+    animation: controls-in 260ms ease both;
+    transition: opacity 600ms ease;
+  }
+}
+
+@keyframes controls-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls-card {
+    transition: opacity 120ms linear;
+  }
+}
+
+/*
+ * Leaving the world (spec Part 5). Desktop: a small persistent hint that fills as
+ * X is held. Top-right, which is the one HUD corner nothing else claims — compass
+ * top centre, time selector top left, joystick and interact button along the bottom.
+ */
+.exit-hint {
+  position: fixed;
+  top: calc(0.75rem + env(safe-area-inset-top));
+  right: calc(0.75rem + env(safe-area-inset-right));
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  padding: 0.375rem 0.75rem 0.375rem 0.375rem;
+  border-radius: 999px;
+  background: rgba(30, 26, 22, 0.55);
+  color: rgba(242, 233, 216, 0.72);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+/* The hold, drawn as a fill that sweeps across the pill. */
+.exit-hint-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(var(--exit-progress, 0));
+  transform-origin: left center;
+  background: rgba(240, 147, 43, 0.5);
+}
+
+.exit-hint kbd,
+.exit-hint span:not(.exit-hint-fill) {
+  position: relative;
+}
+
+.exit-hint kbd {
+  display: grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 5px;
+  background: #f0932b;
+  color: #3a3128;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+/* Touch: a real button beside the joystick, above it so a thumb never fights it. */
+.exit-button {
+  position: fixed;
+  left: calc(1.75rem + env(safe-area-inset-left));
+  bottom: calc(10.5rem + env(safe-area-inset-bottom));
+  z-index: 11;
+  min-width: 5rem;
+  min-height: 46px;
+  padding: 0 1rem;
+  border: 1px solid rgba(240, 147, 43, 0.55);
+  border-radius: 8px;
+  background: rgba(30, 26, 22, 0.66);
+  color: #f5c27a;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.exit-button:active {
+  background: #cf7f3c;
+  color: #3a3128;
+}
+
+.exit-button:focus-visible {
+  outline: 2px solid #f0932b;
+  outline-offset: 3px;
+}
+
+/*
+ * The handoff between the two worlds.
+ *
+ * What used to be here was `.exit-wash`: one parchment sheet, faded up over the
+ * game on a 520 ms timer before the route changed. That sheet was the beige
+ * frame between the game and the portfolio — the game's own loading colour,
+ * covering a page that had not painted yet.
+ *
+ * This is the green instead, and it is not a wipe. Haze closes in from the edges
+ * of the frame, holds while the arriving world paints (handoff.ts decides when),
+ * then opens out of the middle as that world comes through it. Motes drift the
+ * whole time, so the cover reads as air rather than as a rectangle.
+ */
+.handoff {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.handoff[data-phase='covering'],
+.handoff[data-phase='holding'] {
+  pointer-events: auto;
+}
+
+/*
+ * The haze itself: an iris, not a sheet.
+ *
+ * Two earlier attempts both drew a hard rectangle across the middle of the
+ * screen, for the same underlying reason — the green was painted in a *box*
+ * smaller than the viewport, and the box edge was visible. Scaling the element
+ * shrank the dark along with the hole; moving `background-size` instead left a
+ * seam where the gradient (over the fill) met the fill on its own, because
+ * inside the box two layers cover and outside only one does. No matching of
+ * colours fixes that: any box at all is an edge waiting to be seen.
+ *
+ * So there is no box. One gradient paints the whole element, always, and what
+ * moves is its own radius — past the last stop a radial gradient extends that
+ * stop to the element's edges, so a shrinking radius closes the frame from the
+ * outside in with nothing to butt against.
+ */
+@property --iris {
+  syntax: '<length>';
+  inherits: false;
+  /* Registered initial values may not depend on the viewport, so this is px. */
+  initial-value: 0px;
+}
+
+.handoff-haze {
+  position: absolute;
+  inset: 0;
+  /* Open. The clear centre is the first stop, 30% of the radius, and the frame's
+     corners sit at most 70.7vmax from the middle — so 260vmax clears them at any
+     aspect ratio and the world reads through untouched. */
+  --iris: 260vmax;
+  background: radial-gradient(
+    circle var(--iris) at 50% 52%,
+    rgba(18, 30, 20, 0) 30%,
+    rgba(15, 26, 17, 0.55) 58%,
+    rgba(11, 19, 13, 0.92) 82%,
+    rgba(9, 16, 11, 0.985) 100%
+  );
+  opacity: 0;
+  will-change: opacity;
+}
+
+.handoff[data-phase='covering'] .handoff-haze,
+.handoff[data-phase='holding'] .handoff-haze {
+  /* Closed: no centre left, and the last stop fills the frame. */
+  --iris: 0px;
+  opacity: 1;
+}
+
+.handoff[data-phase='revealing'] .handoff-haze {
+  --iris: 280vmax;
+  opacity: 0;
+}
+
+/* A breath of warm green in the middle of the cover, so it is air and not paint. */
+.handoff-haze::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(52% 38% at 50% 54%, rgba(86, 118, 74, 0.22), rgba(9, 16, 11, 0) 72%);
+  opacity: 0;
+}
+
+.handoff[data-phase='covering'] .handoff-haze::after,
+.handoff[data-phase='holding'] .handoff-haze::after {
+  opacity: 1;
+}
+
+/* Air moving through the green, so the cover is never a still rectangle. */
+.handoff-motes {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.handoff[data-phase='covering'] .handoff-motes,
+.handoff[data-phase='holding'] .handoff-motes {
+  opacity: 1;
+}
+
+.handoff-motes span {
+  position: absolute;
+  bottom: -8%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(198, 214, 172, 0.75);
+  box-shadow: 0 0 8px rgba(150, 180, 124, 0.55);
+}
+
+@keyframes handoff-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(1.5rem, -110vh, 0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Without @property support the radius snaps and the opacity fade carries the
+     whole crossing — slower to look at, but it still covers and still reveals. */
+  /* The radius is close to linear on the way in: an aperture that accelerates
+     through the middle of its travel reads as a snap, not as air closing. */
+  .handoff-haze,
+  .handoff-haze::after {
+    transition: --iris 620ms cubic-bezier(0.45, 0.06, 0.5, 0.96), opacity 260ms ease;
+  }
+
+  .handoff[data-phase='revealing'] .handoff-haze,
+  .handoff[data-phase='revealing'] .handoff-haze::after {
+    transition: --iris 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 620ms ease;
+  }
+
+  .handoff-motes {
+    transition: opacity 320ms ease;
+  }
+
+  .handoff-motes span {
+    animation: handoff-drift linear infinite;
+  }
+}
+
+/*
+ * Reduced motion keeps every step of the handoff — the cover, the wait for the
+ * arriving world, the reveal — and only shortens them. The readiness logic is
+ * what prevents the flash, so it is never skipped.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .handoff-haze {
+    transition: opacity 140ms linear;
+    --iris: 0px;
+  }
+
+  .handoff[data-phase='revealing'] .handoff-haze {
+    transition: opacity 160ms linear;
+  }
+
+  .handoff-motes {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .exit-hint {
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+}
+
+/* ============================================================
+ * THE PORTFOLIO
+ *
+ * One continuous green world, travelled by scrolling. The WebGL scene is a
+ * single fixed canvas; everything readable is fixed over it and revealed by the
+ * master timeline, which also drives the camera. There are no stacked sections.
+ *
+ * --u  one reference unit of the shared design grid, published by the journey.
+ * --px / --py  the one damped pointer, published once a frame by the scene.
+ * --in  a chapter's presence on the timeline, written on scroll.
+ * ============================================================ */
+
+.portfolio {
+  --forest: #0d1310;
+  --forest-2: #16211a;
+  --moss: #27412e;
+  --sage: #8fa189;
+  --ivory: #f2ebdd;
+  --ivory-dim: rgba(242, 235, 221, 0.58);
+  --ivory-faint: rgba(242, 235, 221, 0.26);
+  --amber: #f0932b;
+
+  position: relative;
+  color: var(--ivory);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The game locks scrolling; the portfolio is an ordinary document and scrolls. */
+html:has(.portfolio) {
+  height: auto;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+body:has(.portfolio) {
+  height: auto;
+  overflow-y: visible;
+  overflow-x: clip;
+  background: var(--forest);
+}
+
+.world-canvas,
+.world-canvas canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.world-canvas {
+  z-index: 0;
+  pointer-events: none;
+}
+
+/*
+ * The canvas covers the viewport, and the game's base rule gives every canvas
+ * `touch-action: none` so a drag can turn its camera. Here that would swallow
+ * every swipe and the page would never scroll on a phone.
+ */
+.world-canvas canvas {
+  pointer-events: none;
+  touch-action: pan-y;
+}
+
+/* Holds no content — it is the timeline expressed as a length. */
+.scroll-track {
+  position: relative;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* --- chapters ----------------------------------------------------------- */
+.chapter {
+  position: absolute;
+  inset: 0;
+  opacity: var(--in, 0);
+  will-change: opacity;
+}
+
+.chapter--hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 max(1.5rem, env(safe-area-inset-left));
+}
+
+/*
+ * Editorial, and large enough to be the composition rather than a label on it.
+ * Sized on the grid so it holds its proportion of the frame at every width.
+ */
+.wordmark {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: calc(132 * var(--u, 0.9px));
+  font-weight: 300;
+  line-height: 0.92;
+  letter-spacing: calc(-2.4 * var(--u, 0.9px));
+  color: var(--ivory);
+}
+
+.wordmark span {
+  display: block;
+}
+
+.wordmark span:last-child {
+  padding-left: calc(96 * var(--u, 0.9px));
+}
+
+.wordmark-role {
+  margin: calc(28 * var(--u, 0.9px)) 0 0 calc(6 * var(--u, 0.9px));
+  color: var(--ivory-dim);
+  font-size: calc(15 * var(--u, 0.9px));
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+/* --- the way in --------------------------------------------------------- */
+.orbs-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.75rem;
+  background: radial-gradient(70% 55% at 50% 48%, var(--forest-2) 0%, var(--forest) 100%);
+  color: var(--ivory);
+}
+
+.orbs-gate[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.orbs-gate p {
+  margin: 0;
+  color: var(--ivory-faint);
+  font-size: 0.625rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 820px) {
+  .chapter--hero {
+    justify-content: flex-end;
+    padding-bottom: 16svh;
+  }
+
+  .wordmark {
+    font-size: calc(96 * var(--u, 0.9px));
+  }
+
+  .wordmark span:last-child {
+    padding-left: calc(40 * var(--u, 0.9px));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .orbs-gate {
+    transition: opacity 700ms ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbs-gate {
+    transition: opacity 120ms linear;
+  }
+}

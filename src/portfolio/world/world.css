@@ -1,0 +1,604 @@
+  @font-face{
+    font-family:'Lexend';
+    src:url('/assets/world/lexend-latin.woff2') format('woff2');
+    font-weight:100 900; font-style:normal; font-display:swap;
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+
+  /* ── design unit: 1u === 1px on the 1600 × 880 reference frame ───────── */
+  :root:has(.world-root){
+    /* The composition is 1600 x 880 units. Deriving the unit from width alone
+       overflows a short viewport — at 1536x674 the stage stood 845px tall and
+       clipped the bottom card — so the unit is whichever axis binds first and
+       the whole composition always fits. The roots cover the difference: the
+       scene's layout() already scales them by `cover` when the stage is
+       narrower than the frame. */
+    --u: min(calc(100vw / 1600), calc(100svh / 880));
+
+    --ink:            #ffffff;
+    --ink-soft:       rgba(255,255,255,.62);
+    --ink-faint:      rgba(255,255,255,.44);
+    --rule:           rgba(255,255,255,.055);
+
+    --card:           #f2f3ef;
+    --card-ink:       #23261f;
+    --card-label:     #7c8177;
+
+    --ease: cubic-bezier(.22,.61,.36,1);
+    --ease-out: cubic-bezier(.16,1,.3,1);
+  }
+  @media (min-width:1900px){ :root:has(.world-root){ --u: min(calc(1900px / 1600), calc(100svh / 880)); } }
+
+  /* PORT: scoped. Left global this reset would strip the game's UI too. */
+  .world-root,.world-root *,.world-root *::before,.world-root *::after{ box-sizing:border-box; margin:0; padding:0; }
+
+  /* The game locks the document; the portfolio is scrolled. Without both of
+     these a wheel gesture moves nothing while window.scrollTo still works —
+     which is exactly how this passed QA once before. */
+  html:has(.world-root){
+    background:#383b34;
+    height:auto;
+    overflow-x:clip;
+    overflow-y:auto;
+  }
+  body:has(.world-root){
+    font-family:'Lexend',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:300;
+    color:var(--ink);
+    background:#383b34;
+    height:auto;
+    overflow-x:clip;
+    overflow-y:visible;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* ── hero shell ──────────────────────────────────────────────────────── */
+  .hero{
+    /* Fixed, because scrolling is time through the world rather than a page
+       position: the track below supplies the length, the journey reads the
+       scroll, and the composition itself never moves off screen. */
+    position:fixed; inset:0;
+    width:100%;
+    height:100svh;
+    overflow:hidden;
+    isolation:isolate;
+    /* the reference screen reads a near-flat #4a4d44 corner to corner —
+       all the modelling comes from the light pool the root sits in */
+    background:
+      radial-gradient(64% 52% at 27% 84%, rgba(232,238,222,.085) 0%, rgba(232,238,222,0) 72%),
+      radial-gradient(70% 60% at 92% 8%,  rgba(24,28,20,.10) 0%, rgba(24,28,20,0) 68%),
+      #4a4d44;
+  }
+  /* The floor of light the root stands in. Sampled off the reference: the
+     background climbs from 73 luma at the nav to ~128 at y 850, brightest
+     around the middle of the bottom edge. */
+  .hero::after{
+    content:'';
+    position:absolute; inset:0;
+    background:
+      radial-gradient(72% 44% at 50% 117%, rgba(238,243,231,.50) 0%, rgba(238,243,231,.21) 42%, rgba(238,243,231,.04) 72%, rgba(238,243,231,0) 88%),
+      linear-gradient(180deg, rgba(238,243,231,0) 54%, rgba(238,243,231,.03) 78%, rgba(238,243,231,.085) 100%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* The whole composition lives on a centred 1600 × 880 stage.
+     Centred with margins rather than a transform on purpose: a transform would
+     open a stacking context and trap every child below #scene. */
+  /* The interface half of the stage. Identical geometry so every --u
+     coordinate means the same thing in both, but in front of the canvas. */
+  .stage--front{ z-index:4; pointer-events:none; }
+
+  .stage{
+    position:absolute; left:50%; top:50%;
+    margin-left:calc(-800 * var(--u));
+    margin-top:calc(-440 * var(--u));
+    width:calc(1600 * var(--u));
+    height:calc(880 * var(--u));
+  }
+
+  /* ── column guides (z 1) ─────────────────────────────────────────────── */
+  .guides{ position:absolute; inset:calc(-40 * var(--u)) 0; z-index:1; pointer-events:none; }
+  .guides i{
+    position:absolute; top:0; bottom:0; width:1px;
+    background:linear-gradient(180deg, rgba(255,255,255,0) 0%, var(--rule) 12%, var(--rule) 78%, rgba(255,255,255,0) 100%);
+  }
+
+  /* ── three.js canvas (z 3 — above card 1, below everything else) ─────── */
+  #scene{
+    position:absolute; inset:0; z-index:3;
+    width:100%; height:100%;
+    /* The game's base rule gives every canvas touch-action:none so a drag can
+       turn its camera. Here that swallows every swipe and the page never
+       scrolls on a phone. */
+    pointer-events:none; touch-action:pan-y;
+    opacity:0; transition:opacity .7s var(--ease);
+  }
+  .is-ready #scene{ opacity:1; }
+
+  
+
+  
+
+  
+
+  /* ── specular rim ────────────────────────────────────────────────────
+     A conic gradient masked down to the border, whose start angle points at
+     the pointer and whose opacity falls off with distance. It is the reason
+     the glass reads as a lit edge rather than as a flat translucent box. */
+  [data-spec]{ --spec-angle:2.4rad; --spec-bright:0; }
+  [data-spec]::after{
+    content:''; position:absolute; inset:-1px; z-index:5;
+    padding:1px; border-radius:inherit; pointer-events:none;
+    opacity:var(--spec-bright);
+    background:conic-gradient(from var(--spec-angle) at 50% 50%,
+      rgba(240,246,232,0) 0deg, rgba(240,246,232,.08) 14deg, rgba(240,246,232,.95) 28deg,
+      rgba(240,246,232,.16) 46deg, rgba(240,246,232,0) 68deg, rgba(240,246,232,0) 180deg,
+      rgba(240,246,232,.08) 194deg, rgba(240,246,232,.95) 208deg, rgba(240,246,232,.16) 226deg,
+      rgba(240,246,232,0) 248deg, rgba(240,246,232,0) 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+  }
+
+  /* ── hero copy (z 4) ─────────────────────────────────────────────────── */
+  .headline{
+    position:absolute; z-index:4;
+    left:calc(46 * var(--u)); top:calc(202 * var(--u));
+    font-size:calc(63 * var(--u)); line-height:calc(65 * var(--u));
+    font-weight:300; letter-spacing:calc(-0.4 * var(--u));
+    color:var(--ink);
+  }
+  /* No overflow clip: cropping a 63u face to wipe it in cuts the descenders
+     of "Step" and "living" at the moment they land. The padding stays even
+     though the clip is gone — it set the two lines' metrics, and removing it
+     would shift line two. */
+  .headline span{ display:block; padding-bottom:.04em; }
+  .headline span i{ display:inline-block; font-style:normal; }
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  .js .fade{ opacity:0; }
+  .is-ready .fade{ opacity:1; transition:opacity 1.3s var(--ease) var(--d,0ms); }
+
+  
+
+  /* A short rise under a fade rather than a full-height wipe: with nothing
+     cropping it, a 105% travel would start line one sitting on top of line
+     two. .headline itself carries the pointer parallax, so the transform has
+     to go on the inner <i>. */
+  .js .headline span i{ opacity:0; transform:translateY(calc(16 * var(--u))); }
+  .is-ready .headline span i{
+    opacity:1; transform:none;
+    transition:opacity 1.05s var(--ease) var(--d,0ms),
+               transform 1.25s var(--ease-out) var(--d,0ms);
+  }
+
+  
+
+  /* No clip on the canvas: the root draws itself in behind the survey pulse,
+     and a CSS wipe on top of that would be two reveals fighting each other.
+     The fade is only here to cover the first compiled frame. */
+  .is-ready #scene{ transition:opacity .45s var(--ease); }
+
+  /* ── pointer parallax ────────────────────────────────────────────────
+     --px / --py are written on .hero once per frame (-1…1). Each layer
+     declares how far it rides (--pd, px at full deflection) and how much
+     it turns (--pr, degrees), which is what gives the plane its depth. */
+  .par{
+    transform:
+      perspective(1400px)
+      translate3d(calc(var(--px,0) * var(--pd,0) * -1px),
+                  calc(var(--py,0) * var(--pd,0) * -0.62px),
+                  0)
+      rotateY(calc(var(--px,0) * var(--pr,0) * 1deg))
+      rotateX(calc(var(--py,0) * var(--pr,0) * -0.7deg));
+  }
+
+  /* ── keyboard focus ──────────────────────────────────────────────────── */
+  a:focus-visible, button:focus-visible{
+    outline:2px solid rgba(255,255,255,.85);
+    outline-offset:calc(4 * var(--u));
+    border-radius:calc(6 * var(--u));
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .fade,#scene,
+    .headline span i{ opacity:1 !important; clip-path:none !important; transform:none !important; transition:none !important; }
+    
+    .par{ transform:none !important; }
+
+    
+    #scene{ transition:none; }
+  }
+
+  /* ── narrow screens: one column, the moss becomes a band between the
+        copy and the cards (760 design units wide) ───────────────────────── */
+  @media (max-width:900px){
+    :root:has(.world-root){ --u: calc(100vw / 760); }   /* narrow: the stage is a tall band and is meant to overflow */
+    .hero{ height:auto; min-height:100svh; }
+    .stage{
+      position:relative; left:auto; top:auto; margin:0;
+      width:100%; height:calc(1625 * var(--u));
+    }
+    .hero::after{
+      background:
+        radial-gradient(90% 30% at 50% 74%, rgba(238,243,231,.40) 0%, rgba(238,243,231,.14) 46%, rgba(238,243,231,0) 82%),
+        linear-gradient(180deg, rgba(238,243,231,0) 62%, rgba(238,243,231,.05) 100%);
+    }
+    .guides i:nth-child(3){ display:none; }
+    .guides i:nth-child(1){ left:calc(253 * var(--u)) !important; }
+    .guides i:nth-child(2){ left:calc(506 * var(--u)) !important; }
+
+    
+
+    
+    .headline{ left:calc(34 * var(--u)); top:calc(128 * var(--u)); font-size:calc(62 * var(--u)); line-height:calc(66 * var(--u)); }
+
+    
+
+    
+
+    
+
+    
+    
+  }
+
+  /* ══ the journey ═══════════════════════════════════════════════════════
+     Everything below belongs to the portfolio rather than to the reference
+     scene it was ported from. */
+
+  /* Holds no content. It is the journey expressed as a length: eight screens
+     of travel, which the scroll position maps onto progress 0 → 1. */
+  .journey-track{
+    position:relative;
+    z-index:0;
+    height:800svh;
+    pointer-events:none;
+  }
+
+  /* The camera, republished to CSS.
+     scene.ts writes --jx/--jy/--jz once a frame from the same camera that
+     draws the world. Because layout() makes one world unit one CSS pixel at
+     z=0, and this perspective is the camera's own DIST, a layer carrying this
+     transform lands exactly where WebGL would put it — the DOM and the canvas
+     are one image, not two that happen to line up. */
+  .world-layer{
+    transform:
+      perspective(1400px)
+      translate3d(calc(var(--jx,0) * 1px), calc(var(--jy,0) * 1px), calc(var(--jz,0) * 1px));
+    transform-style:preserve-3d;
+  }
+
+  /* ── hero typography (z 4) ──────────────────────────────────────────── */
+  /* Upper left, clear of the navigator column (0-210u). Name and role only:
+     the signature read as the same name twice and is kept for the final
+     scene. */
+  .hero-type{
+    position:absolute; z-index:4;
+    left:calc(240 * var(--u)); top:calc(120 * var(--u));
+    width:calc(900 * var(--u));
+    pointer-events:none;
+    /* The hero belongs to progress 0 and leaves as the journey begins. */
+    opacity:clamp(0, calc(1.25 - var(--j,0) * 16), 1);
+    transform:translate3d(0, calc(var(--j,0) * -220px), 0);
+  }
+  /* The signature sizes itself from its font size; the box only stops it
+     running past the composition on a narrow frame. */
+  .hero-name{ max-width:min(calc(900 * var(--u)), 84vw); }
+  .hero-name svg{ display:block; max-width:100%; height:auto; overflow:visible; }
+  .hero-role{
+    margin-top:calc(18 * var(--u));
+    font-size:calc(15 * var(--u));
+    letter-spacing:.42em;
+    color:var(--ink-faint);
+    pointer-events:auto;
+  }
+  .hero-role-letter{ display:inline-block; will-change:transform; }
+
+  /* ── world cards (z 4) ─────────────────────────────────────────────────
+     One card per chapter, standing where the camera will be when the journey
+     reaches it. Position is measured from the viewport centre in world
+     pixels (one world unit is one CSS pixel at z=0), and the same --jx/--jy/
+     --jz the scene publishes carry it with the camera, so a card authored for
+     a chapter is in frame exactly when that chapter is current.
+
+     Reveal is pure CSS from the one progress value: --d is how far the
+     journey is from the card chapter, --vis its presence. Nothing in React
+     runs per frame. */
+  .cards{ position:absolute; inset:0; z-index:4; pointer-events:none; }
+
+  .card{
+    --d: calc(var(--j, 0) - var(--at, 0));
+    --ad: max(var(--d), calc(-1 * var(--d)));
+    /* Fully present within ±0.03 of its chapter, gone by ±0.09 — a chapter is
+       0.1 of the journey from the hero, so nothing shows on the landing. */
+    --vis: clamp(0, calc(1.5 - var(--ad) * 16.7), 1);
+
+    position:absolute; left:50%; top:50%;
+    width:calc(var(--cw) * var(--u));
+    display:flex; flex-direction:column; align-items:flex-start;
+    gap:calc(7 * var(--u));
+    padding:calc(30 * var(--u)) calc(30 * var(--u)) calc(34 * var(--u));
+    text-align:left; font:inherit; cursor:pointer;
+    /* The world's own palette: a dark translucent surface with a faint ivory
+       rim, so a card reads as an object standing in the forest rather than a
+       sheet of paper laid over it. */
+    background:linear-gradient(160deg, rgba(36,47,34,.90) 0%, rgba(17,24,17,.92) 100%);
+    border:1px solid rgba(242,235,221,.11);
+    border-radius:calc(30 * var(--u));
+    box-shadow:0 calc(26 * var(--u)) calc(60 * var(--u)) rgba(4,7,4,.55), inset 0 1px 0 rgba(242,235,221,.07);
+    opacity:var(--vis);
+    /* Not yet reached: a little lower and smaller; it rises into place as the
+       camera arrives and sinks away as it leaves. */
+    transform:
+      perspective(1400px)
+      translate3d(calc((var(--sx) + var(--jx,0)) * 1px),
+                  calc((var(--sy) + var(--jy,0) + var(--d) * -260) * 1px),
+                  calc((var(--jz,0) + var(--cz,0)) * 1px))
+      translate(-50%, -50%)
+      rotate(var(--tilt,0deg))
+      scale(calc(0.88 + 0.12 * var(--vis)));
+    transform-origin:50% 50%;
+    visibility:hidden; pointer-events:none;
+    transition:box-shadow .5s var(--ease), background .4s var(--ease);
+    will-change:transform, opacity;
+  }
+  /* Only the current chapter and its neighbours can be touched; a card faded
+     to nothing must not remain a focusable, clickable button. */
+  .card.is-near{ visibility:visible; pointer-events:auto; }
+
+  .card-label{ font-size:calc(12.5 * var(--u)); letter-spacing:.26em; text-transform:uppercase; color:rgba(190,206,170,.78); }
+  .card-title{ font-size:calc(25 * var(--u)); line-height:calc(27 * var(--u)); font-weight:400; letter-spacing:calc(-0.4 * var(--u)); color:#f2ebdd; }
+  .card-teaser{ font-size:calc(13.5 * var(--u)); line-height:calc(19 * var(--u)); color:rgba(242,235,221,.62); }
+  .card-open{
+    margin-top:calc(10 * var(--u));
+    font-size:calc(11.5 * var(--u)); letter-spacing:.24em; text-transform:uppercase;
+    color:#f2ebdd; opacity:.5;
+  }
+  .card:hover, .card:focus-visible{
+    border-color:rgba(242,235,221,.22);
+    box-shadow:0 calc(34 * var(--u)) calc(74 * var(--u)) rgba(4,7,4,.62), inset 0 1px 0 rgba(242,235,221,.1);
+  }
+  .card:hover .card-open{ opacity:.95; }
+  .card.is-active{ border-color:rgba(190,206,170,.4); }
+
+  /* While a section is open the cards step back out of the way, and so does
+     the navigator — through the darkened layer its labels read as a smear. */
+  .cards[data-open] .card{ opacity:calc(var(--vis) * .18); pointer-events:none; }
+  .hero:has(.content) .ribbon{ opacity:0; pointer-events:none; }
+
+  /* ── navigator: ribbon + wheel (z 5 / z 7) ─────────────────────────────
+     Collapsed, a slim vertical tab on the left edge naming the current
+     chapter. Open, the wheel of chapters over a dimmed world. */
+  .ribbon{
+    position:absolute; z-index:5;
+    left:calc(18 * var(--u)); top:50%;
+    transform:translateY(-50%);
+    display:flex; flex-direction:column; align-items:center;
+    gap:calc(12 * var(--u));
+    padding:calc(18 * var(--u)) calc(11 * var(--u));
+    min-width:44px;
+    background:rgba(17,24,17,.66);
+    border:1px solid rgba(242,235,221,.12);
+    border-radius:999px;
+    color:#f2ebdd; font:inherit; cursor:pointer;
+    pointer-events:auto;
+    transition:background .3s var(--ease), border-color .3s var(--ease), opacity .3s var(--ease);
+  }
+  .ribbon:hover, .ribbon:focus-visible, .ribbon[aria-expanded="true"]{
+    background:rgba(28,38,27,.86); border-color:rgba(242,235,221,.26);
+  }
+  .ribbon-dot{
+    width:calc(7 * var(--u)); height:calc(7 * var(--u)); min-width:6px; min-height:6px;
+    border-radius:50%; background:rgba(190,206,170,.95);
+    box-shadow:0 0 0 calc(4 * var(--u)) rgba(190,206,170,.16);
+  }
+  .ribbon-label, .ribbon-hint{
+    writing-mode:vertical-rl; transform:rotate(180deg);
+    text-transform:uppercase; letter-spacing:.3em; white-space:nowrap;
+  }
+  .ribbon-label{ font-size:calc(12.5 * var(--u)); color:#f2ebdd; }
+  .ribbon-hint{ font-size:calc(10 * var(--u)); color:rgba(242,235,221,.42); }
+
+  .menu{
+    position:absolute; inset:0; z-index:7;
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+    padding-left:calc(70 * var(--u));
+    background:radial-gradient(110% 90% at 30% 50%, rgba(14,20,14,.74) 0%, rgba(14,20,14,.88) 100%);
+    pointer-events:auto;
+    animation:content-in .4s var(--ease-out) both;
+  }
+  .menu-wheel{
+    width:min(calc(620 * var(--u)), 78vw);
+    height:min(calc(600 * var(--u)), 74svh);
+    animation:rise-in .6s var(--ease-out) both;
+  }
+  .menu-hint{
+    margin-top:calc(14 * var(--u)); padding-left:calc(6 * var(--u));
+    font-size:calc(11 * var(--u)); letter-spacing:.26em; text-transform:uppercase;
+    color:rgba(242,235,221,.42);
+  }
+
+  /* ── the opened section (z 6) ──────────────────────────────────────────
+     Translucent, never opaque: the world stays visible behind the content.
+     No backdrop blur — blurring a live WebGL canvas costs a full-screen pass
+     every frame, and the darkening alone separates the content enough. */
+  .content{
+    position:absolute; inset:0; z-index:6;
+    display:flex; flex-direction:column;
+    padding:calc(34 * var(--u)) calc(40 * var(--u)) calc(24 * var(--u));
+    background:radial-gradient(120% 90% at 50% 50%, rgba(18,24,16,.72) 0%, rgba(18,24,16,.86) 100%);
+    animation:content-in .45s var(--ease-out) both;
+  }
+  @keyframes content-in{ from{ opacity:0; } to{ opacity:1; } }
+
+  .content-head{
+    position:relative; flex:0 0 auto;
+    padding:0 calc(58 * var(--u)) 0 calc(6 * var(--u));
+    animation:rise-in .6s var(--ease-out) both;
+  }
+  @keyframes rise-in{ from{ opacity:0; transform:translateY(calc(16 * var(--u))); } to{ opacity:1; transform:none; } }
+  .content-kicker{ font-size:calc(12.5 * var(--u)); letter-spacing:.3em; text-transform:uppercase; color:var(--ink-faint); }
+  .content-title{ margin-top:calc(6 * var(--u)); font-size:calc(34 * var(--u)); line-height:1.05; font-weight:300; letter-spacing:calc(-0.8 * var(--u)); color:var(--ink); }
+  .content-close{
+    position:absolute; right:0; top:0;
+    width:calc(46 * var(--u)); height:calc(46 * var(--u)); min-width:44px; min-height:44px;
+    display:grid; place-items:center;
+    font-size:calc(26 * var(--u)); line-height:1; color:var(--ink-soft);
+    background:rgba(255,255,255,.06); border:1px solid var(--rule); border-radius:50%; cursor:pointer;
+    transition:background .25s var(--ease), color .25s var(--ease);
+  }
+  .content-close:hover, .content-close:focus-visible{ background:rgba(255,255,255,.14); color:var(--ink); }
+
+  .content-foot{
+    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:calc(10 * var(--u)) calc(6 * var(--u)) 0;
+    font-size:calc(11 * var(--u)); letter-spacing:.26em; text-transform:uppercase; color:var(--ink-faint);
+  }
+
+  /* ── focus carousel ────────────────────────────────────────────────────
+     One upright, fully readable card in the centre; neighbours peek at the
+     sides, smaller, dimmer and turned slightly toward it. Every item is
+     placed by --o, its signed distance from the focused index, so a drag
+     moves the whole set by writing one variable on the track and React is
+     only involved when the index actually changes. */
+  .fc{
+    position:relative; flex:1 1 auto; min-height:0;
+    display:flex; align-items:center;
+    /* Step is nearly a full card, so neighbours sit beside the focused card
+       rather than tucked under it. */
+    --step: min(calc(438 * var(--u)), 62vw);
+    --cardw: min(calc(440 * var(--u)), 82vw);
+    --cardh: min(calc(520 * var(--u)), 66svh);
+    perspective:1400px;
+    touch-action:pan-y;
+    user-select:none; -webkit-user-select:none;
+    outline:none;
+    animation:rise-in .65s var(--ease-out) .08s both;
+  }
+  .fc-track{ position:absolute; inset:0; --index:0; --drag:0; }
+  .fc-item{
+    --o: calc(var(--i) - var(--index) + var(--drag));
+    --ao: max(var(--o), calc(-1 * var(--o)));
+    position:absolute; left:50%; top:50%;
+    width:var(--cardw); height:var(--cardh);
+    display:flex; flex-direction:column;
+    padding:calc(34 * var(--u)) calc(34 * var(--u)) calc(28 * var(--u));
+    background:linear-gradient(165deg, rgba(38,50,36,.96) 0%, rgba(16,23,16,.97) 100%);
+    color:#f2ebdd;
+    border:1px solid rgba(242,235,221,.12);
+    border-radius:calc(28 * var(--u));
+    box-shadow:0 calc(30 * var(--u)) calc(70 * var(--u)) rgba(3,6,3,.6), inset 0 1px 0 rgba(242,235,221,.08);
+    transform:
+      translate(-50%, -50%)
+      translate3d(calc(var(--o) * var(--step)), 0, calc(var(--ao) * -160px))
+      rotateY(calc(var(--o) * -8deg))
+      scale(calc(1 - min(var(--ao), 2) * 0.1));
+    opacity:calc(1 - min(var(--ao), 2.4) * 0.4);
+    transition:transform .55s var(--ease-out), opacity .45s var(--ease);
+    cursor:grab;
+  }
+  .fc-track[data-dragging] .fc-item{ transition:none; cursor:grabbing; }
+  .fc-item[aria-hidden="true"]{ visibility:hidden; }
+  .fc-item.is-focus{ cursor:default; }
+
+  .fc-kicker{ font-size:calc(12 * var(--u)); letter-spacing:.26em; text-transform:uppercase; color:rgba(190,206,170,.8); }
+  .fc-title{ margin-top:calc(8 * var(--u)); font-size:calc(28 * var(--u)); line-height:1.08; font-weight:400; letter-spacing:calc(-0.5 * var(--u)); color:#f2ebdd; }
+  .fc-meta{ margin-top:calc(6 * var(--u)); font-size:calc(13 * var(--u)); color:rgba(242,235,221,.55); }
+  .fc-body{
+    margin-top:calc(16 * var(--u)); flex:1 1 auto; min-height:0;
+    font-size:calc(14.5 * var(--u)); line-height:calc(22 * var(--u)); color:rgba(242,235,221,.8);
+    overflow:auto; overscroll-behavior:contain; padding-right:calc(4 * var(--u));
+    scrollbar-width:thin; scrollbar-color:rgba(242,235,221,.25) transparent;
+  }
+  .fc-tags{ display:flex; flex-wrap:wrap; gap:calc(6 * var(--u)); margin-top:calc(14 * var(--u)); }
+  .fc-tags span{
+    font-size:calc(11.5 * var(--u)); letter-spacing:.06em;
+    padding:calc(5 * var(--u)) calc(10 * var(--u));
+    border:1px solid rgba(242,235,221,.16); border-radius:999px; color:rgba(242,235,221,.75);
+  }
+  .fc-links{ display:flex; flex-wrap:wrap; gap:calc(8 * var(--u)); margin-top:calc(14 * var(--u)); }
+  .fc-links a{
+    font-size:calc(12.5 * var(--u)); letter-spacing:.08em; text-decoration:none;
+    padding:calc(8 * var(--u)) calc(14 * var(--u));
+    border-radius:999px; background:rgba(242,235,221,.92); color:#141a14;
+    transition:background .25s var(--ease);
+  }
+  .fc-links a:hover, .fc-links a:focus-visible{ background:#ffffff; }
+
+  .fc-dots{ display:flex; gap:calc(8 * var(--u)); }
+  .fc-dot{
+    width:calc(8 * var(--u)); height:calc(8 * var(--u)); min-width:8px; min-height:8px;
+    padding:0; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(242,235,221,.28);
+    transition:background .25s var(--ease), transform .25s var(--ease);
+  }
+  .fc-dot[aria-current="true"]{ background:rgba(242,235,221,.95); transform:scale(1.25); }
+  .fc-arrow{
+    width:calc(40 * var(--u)); height:calc(40 * var(--u)); min-width:40px; min-height:40px;
+    display:grid; place-items:center; cursor:pointer;
+    color:var(--ink-soft); background:rgba(255,255,255,.06);
+    border:1px solid var(--rule); border-radius:50%;
+    transition:background .25s var(--ease), color .25s var(--ease);
+  }
+  .fc-arrow:hover, .fc-arrow:focus-visible{ background:rgba(255,255,255,.14); color:var(--ink); }
+  .fc-arrow:disabled{ opacity:.3; cursor:default; }
+  .fc-nav{ display:flex; align-items:center; gap:calc(14 * var(--u)); }
+
+  @media (prefers-reduced-motion:reduce){
+    .card, .fc-item{ transition:none; }
+    .content, .content-head, .fc{ animation-duration:.01ms; }
+  }
+
+  /* ── narrow screens ─────────────────────────────────────────────────── */
+  @media (max-width:900px){
+    /* The interface layer spans the hero regardless of the band the scene
+       stage becomes, so 50%/50% is still the viewport centre. */
+    .stage--front{ position:absolute; inset:0; left:0; top:0; margin:0; width:auto; height:auto; }
+    .hero-type{ left:calc(34 * var(--u)); top:calc(120 * var(--u)); width:calc(692 * var(--u)); }
+    .hero-name{ max-width:84vw; }
+    .card{ width:min(calc(var(--cw) * var(--u) * 1.6), 84vw); }
+    .ribbon{ left:calc(14 * var(--u)); padding:calc(22 * var(--u)) calc(14 * var(--u)); gap:calc(16 * var(--u)); }
+    .ribbon-label{ font-size:calc(17 * var(--u)); }
+    .ribbon-hint{ font-size:calc(13 * var(--u)); }
+    .menu{ padding-left:calc(40 * var(--u)); }
+    .menu-wheel{ width:84vw; height:66svh; }
+    .menu-hint{ font-size:calc(14 * var(--u)); }
+    .content{ padding:calc(26 * var(--u)) calc(26 * var(--u)) calc(20 * var(--u)); }
+    .content-title{ font-size:calc(40 * var(--u)); }
+    .content-kicker, .content-foot{ font-size:calc(15 * var(--u)); }
+    .fc{ --step: 78vw; --cardw: 84vw; --cardh: 62svh; }
+    .fc-item{ padding:calc(40 * var(--u)) calc(40 * var(--u)) calc(34 * var(--u)); }
+    .fc-title{ font-size:calc(40 * var(--u)); }
+    .fc-body{ font-size:calc(21 * var(--u)); line-height:calc(31 * var(--u)); }
+    .fc-kicker, .fc-meta{ font-size:calc(17 * var(--u)); }
+    .fc-tags span, .fc-links a{ font-size:calc(16 * var(--u)); }
+  }

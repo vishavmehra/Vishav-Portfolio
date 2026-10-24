@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+build/
+
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+
+.DS_Store
+.playwright-mcp/
+
+# local tool state, not project source
+.claude/settings.local.json
+.remember/
+.impeccable/
+
+# downloaded reference material, kept out of the repo and off the public path
+.reference/
