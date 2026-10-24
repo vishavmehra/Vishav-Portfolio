@@ -43,7 +43,7 @@ export function WorldCards() {
 
   return (
     <div className="cards" data-open={active ?? undefined}>
-      {placed.map(({ card, spot, sx, sy }) => {
+      {placed.map(({ card, spot, sx, sy, k }) => {
         const chosen = active === card.id
         const near = Math.abs(ORDER.indexOf(spot.id) - here) <= 1
         return (
@@ -61,6 +61,7 @@ export function WorldCards() {
                 '--sx': Math.round(sx),
                 '--sy': Math.round(sy),
                 '--cz': spot.cz,
+                '--k': k.toFixed(3),
                 '--cw': spot.w,
                 '--tilt': `${spot.tilt}deg`,
               } as React.CSSProperties

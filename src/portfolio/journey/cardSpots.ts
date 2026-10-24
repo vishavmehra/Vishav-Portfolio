@@ -46,13 +46,17 @@ export const CARD_SPOTS: readonly CardSpot[] = [
  * The world-space offset that puts a card at its screen spot when the camera
  * is at its chapter. Inverts the scene's publication: a DOM card is translated
  * by (sx + jx, sy + jy) with jx = -cam.x and jy = cam.y, then scaled by
- * DIST / (cam.z - cz). The same numbers place the card's world position at
+ * k = DIST / (cam.z - cz). The same numbers place the card's world position at
  * (sx, -sy, cz) in scene coordinates — world y is up, CSS y is down.
+ *
+ * k is returned as well: it is how much larger than its CSS box the card is
+ * drawn at its chapter, and on a phone the stylesheet divides it back out so a
+ * card authored deep in the scene is not also drawn wider than the screen.
  */
-export function solveSpot(s: CardSpot, narrow: boolean): { sx: number; sy: number } {
+export function solveSpot(s: CardSpot, narrow: boolean): { sx: number; sy: number; k: number } {
   const cam = sampleCameraPath(s.at, { x: 0, y: 0, z: 0 })
-  const scale = CAMERA_DIST / (cam.z - s.cz)
+  const k = CAMERA_DIST / (cam.z - s.cz)
   const dx = narrow ? 0 : s.dx
   const dy = narrow ? s.dy * 0.6 : s.dy
-  return { sx: dx / scale + cam.x, sy: dy / scale - cam.y }
+  return { sx: dx / k + cam.x, sy: dy / k - cam.y, k }
 }

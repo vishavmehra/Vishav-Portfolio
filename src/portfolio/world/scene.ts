@@ -326,6 +326,23 @@ export function mountWorldScene(): () => void {
       rw = function (t) { return rt(t) * 0.52 * knot(t, 0.05, 0.024); };
       moss = function (t) { return rt(t) * 0.88; };
     }
+    /* Free ends. The tubes are open, so a limb that simply stops shows a flat
+       hollow cap with the moss sliced through it — fine while every end lay
+       outside the one composed frame, wrong once the camera travels and looks
+       back at the organism from below. A limb whose end can come into view
+       narrows to a point over its last stretch, as a root does; tip is
+       [fraction of the run at the start, fraction at the end]. */
+    if (opt.tip) {
+      var t0 = opt.tip[0] || 0, t1 = opt.tip[1] || 0, rw0 = rw, moss0 = moss;
+      var tipK = function (t) {
+        var k = 1;
+        if (t0) k *= sstep(0, t0, t);
+        if (t1) k *= 1 - sstep(1 - t1, 1, t);
+        return 0.03 + 0.97 * k;
+      };
+      rw = function (t) { return rw0(t) * tipK(t); };
+      moss = function (t) { return moss0(t) * tipK(t); };
+    }
     return {
       curve: curve,
       segs: opt.segs,
@@ -551,7 +568,14 @@ export function mountWorldScene(): () => void {
 
     /* the long snaking root: enters left low, crests at 25%, drops into the
        valley at 50%, then runs out through the right edge */
+    /* Both ends run further out than the artwork's frame and finish in a tip.
+       The journey's camera drifts up to 220 units sideways and the narrow
+       layout's box is small, so on a phone at the Experience chapter the
+       frame reached past the old right end (fx 1.09) and showed its cut face;
+       a 320px screen at Projects did the same on the left. */
     limbs.push(makeLimb(P, [
+      [-0.250, 0.915, -0.80],
+      [-0.160, 0.885, -0.72],
       [-0.075, 0.845, -0.62],
       [ 0.000, 0.790, -0.38],
       [ 0.107, 0.695,  0.04],
@@ -566,11 +590,16 @@ export function mountWorldScene(): () => void {
       [ 0.850, 0.640, -0.08],
       [ 0.930, 0.626, -0.30],
       [ 1.030, 0.634, -0.55],
-      [ 1.090, 0.638, -0.70]
+      [ 1.090, 0.638, -0.70],
+      [ 1.180, 0.650, -0.82],
+      [ 1.270, 0.672, -0.92],
+      [ 1.360, 0.700, -1.00]
     ], {
-      segs: 300, radial: 26, vScale: 30,
-      /* half-band, local units, sampled every 10% of the run */
-      rt: [0.575, 0.590, 0.630, 0.680, 0.695, 0.615, 0.580, 0.480, 0.550, 0.550, 0.520], sink: 0.5
+      segs: 400, radial: 26, vScale: 41,
+      /* half-band, local units; the middle eleven are the artwork's run
+         sampled every 10%, the outer entries carry the extensions */
+      rt: [0.560, 0.570, 0.575, 0.590, 0.630, 0.680, 0.695, 0.615, 0.580, 0.480, 0.550, 0.550, 0.520, 0.500, 0.480],
+      sink: 0.5, tip: [0.10, 0.10]
     }));
 
     /* the arch: lifts off the root at 55%, crowns at 73% with a deep moss
@@ -582,8 +611,13 @@ export function mountWorldScene(): () => void {
        different bark and a different moss line on each side. */
     var legRw   = table([0.30, 0.28, 0.26, 0.25, 0.24, 0.23, 0.22]);
     var legMoss = table([0.24, 0.24, 0.23, 0.22, 0.21, 0.20, 0.19]);
+    /* The leg starts ON the root's wood axis (its cushion sinks that axis to
+       fy 0.82 here) and tapers in, so its open end is buried. It used to start
+       half a radius in front of and below the root: from the composed frame
+       the root hid it, but the journey ends under the root looking up, and
+       there the cap showed as a sawn face with the moss sliced through. */
     limbs.push(makeLimb(P, [
-      [0.532, 0.860,  0.20],
+      [0.526, 0.824, -0.21],
       [0.572, 0.700,  0.28],
       [0.612, 0.540,  0.34],
       [0.652, 0.390,  0.33],
@@ -593,11 +627,14 @@ export function mountWorldScene(): () => void {
     ], {
       segs: 130, radial: 20, vScale: 22,
       rw:   function (t) { return legRw(t) * knot(t, 0.05, 0.022); },
-      moss: legMoss
+      moss: legMoss, tip: [0.06, 0]
     }));
 
-    var legR   = table([0.23, 0.25, 0.27, 0.30, 0.33, 0.36, 0.40]);
-    var legRm  = table([0.19, 0.20, 0.21, 0.22, 0.24, 0.25, 0.26]);
+    /* The planted leg runs on to fy 1.78 and ends in a tip. Its old end at
+       fy 1.18 sat exactly on the closing frame's bottom edge on a 1440 x 900
+       desktop and well inside it on a tablet at Achievements. */
+    var legR   = table([0.23, 0.25, 0.27, 0.30, 0.33, 0.36, 0.40, 0.42, 0.43, 0.44]);
+    var legRm  = table([0.19, 0.20, 0.21, 0.22, 0.24, 0.25, 0.26, 0.26, 0.26, 0.26]);
     limbs.push(makeLimb(P, [
       [0.706, 0.176, -0.02],
       [0.740, 0.158,  0.02],
@@ -606,11 +643,14 @@ export function mountWorldScene(): () => void {
       [0.816, 0.570, -0.22],
       [0.836, 0.760, -0.18],
       [0.858, 0.950, -0.08],
-      [0.888, 1.180,  0.04]
+      [0.888, 1.180,  0.04],
+      [0.912, 1.400,  0.12],
+      [0.930, 1.620,  0.14],
+      [0.940, 1.780,  0.10]
     ], {
-      segs: 150, radial: 20, vScale: 22,
+      segs: 240, radial: 20, vScale: 35,
       rw:   function (t) { return legR(t) * knot(t, 0.05, 0.022); },
-      moss: legRm
+      moss: legRm, tip: [0, 0.15]
     }));
 
     return limbs;
@@ -619,6 +659,7 @@ export function mountWorldScene(): () => void {
   function buildFarRoot() {
     var P = makeP(FAR.aspect);
     return [makeLimb(P, [
+      [-0.200, 0.960, -0.60],
       [-0.060, 0.880, -0.35],
       [ 0.100, 0.762, -0.05],
       [ 0.210, 0.698,  0.22],
@@ -631,8 +672,11 @@ export function mountWorldScene(): () => void {
       [ 0.900, 0.660,  0.14],
       [ 0.990, 0.454,  0.28]
     ], {
-      segs: 220, radial: 20, vScale: 26,
-      rt: [0.760, 0.900, 0.900, 0.960, 0.925, 0.950, 1.020, 1.020, 0.990, 1.100, 1.300], sink: 0.5
+      segs: 250, radial: 20, vScale: 29,
+      /* the left end runs out further and tapers; the right end is dissolved
+         by the mask and needs nothing */
+      rt: [0.700, 0.760, 0.900, 0.900, 0.960, 0.925, 0.950, 1.020, 1.020, 0.990, 1.100, 1.300],
+      sink: 0.5, tip: [0.10, 0]
     })];
   }
 
@@ -1429,8 +1473,11 @@ export function mountWorldScene(): () => void {
   function build() {
     var narrow = NARROW.matches;
     var small = narrow || (window.innerWidth * window.innerHeight) < 620000;
-    var BLADES_NEAR = small ? 70000 : 190000;
-    var BLADES_FAR  = small ? 20000 :  60000;
+    /* Planting is by length, and the roots now run on past the frame (see
+       buildNearRoot), so the counts grow with them to hold the same density
+       on the stretch that was always in view. */
+    var BLADES_NEAR = small ? 88000 : 240000;
+    var BLADES_FAR  = small ? 22500 :  67000;
 
     var q = /[?&]blades=(\d+)/.exec(location.search);
     if (q) { BLADES_NEAR = +q[1]; BLADES_FAR = Math.round(+q[1] * 0.21); }
@@ -1474,7 +1521,7 @@ export function mountWorldScene(): () => void {
 
     nearGroup = assembleRoot(nearLimbs, {
       aspect: ARCH.aspect, haze: 0.15, fog: 0.0, alpha: 1.0, order: 2,
-      blades: BLADES_NEAR, ferns: small ? 26 : 46, flowers: small ? 120 : 260,
+      blades: BLADES_NEAR, ferns: small ? 32 : 56, flowers: small ? 150 : 320,
       fernSize: [0.22, 0.50], flowerSize: [0.055, 0.118], mainLimbs: mainCount, wire: true,
       mouse: uMouseNear, mouseR: 1.20
     });
@@ -1506,7 +1553,17 @@ export function mountWorldScene(): () => void {
        that happens to look similar.
 
        fy runs past 1.0 on purpose: 1.0 is the foot of the composition box, and
-       everything below it is world the camera has not reached yet. */
+       everything below it is world the camera has not reached yet.
+
+       It has to outrun the camera on every screen. The journey ends with the
+       camera at y = -620 looking down a frame whose bottom edge, on a phone,
+       is near y = -820 — and a phone's box is small, so the same fy covers
+       less distance: at 390px wide an end at fy 2.66 sat at y = -614, in the
+       middle of the closing frame, a sawn-off tube under the signature. At
+       fy 3.95 the end is past y = -870 on a 320 x 568 screen and far below the
+       frame on anything larger; on desktop it was never in view. Segments,
+       bark repeat and planting counts grow with the length (x1.52) so the
+       visible stretch keeps the same density as before. */
     stemGroup = assembleRoot([
       makeLimb(makeP(ARCH.aspect), [
         [0.752, 0.163,  0.02],          /* meets the arch leg's foot */
@@ -1519,15 +1576,21 @@ export function mountWorldScene(): () => void {
         [0.628, 1.840, -0.18],
         [0.596, 2.120, -0.06],
         [0.628, 2.400,  0.08],
-        [0.672, 2.660,  0.14]
+        [0.672, 2.660,  0.14],
+        [0.690, 2.920,  0.12],
+        [0.668, 3.180,  0.02],
+        [0.630, 3.440, -0.10],
+        [0.612, 3.700, -0.16],
+        [0.634, 3.950, -0.12]
       ], {
-        segs: 240, radial: 20, vScale: 26,
-        rt: [0.300, 0.318, 0.336, 0.352, 0.366, 0.378, 0.388, 0.396, 0.402, 0.406, 0.408],
-        sink: 0.42
+        segs: 360, radial: 20, vScale: 40,
+        rt: [0.300, 0.318, 0.336, 0.352, 0.366, 0.378, 0.388, 0.396, 0.402, 0.406, 0.408,
+             0.410, 0.411, 0.412, 0.412, 0.412],
+        sink: 0.42, tip: [0, 0.12]
       })
     ], {
       aspect: ARCH.aspect, haze: 0.15, fog: 0.04, alpha: 1.0, order: 1,
-      blades: small ? 26000 : 70000, ferns: small ? 10 : 20, flowers: small ? 40 : 90,
+      blades: small ? 39500 : 106000, ferns: small ? 15 : 30, flowers: small ? 61 : 137,
       fernSize: [0.22, 0.50], flowerSize: [0.055, 0.118], mainLimbs: 1, wire: true,
       mouse: uMouseNear, mouseR: 1.20
     });

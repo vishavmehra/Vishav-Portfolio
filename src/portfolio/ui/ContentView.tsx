@@ -77,7 +77,7 @@ export function ContentView() {
           {index + 1} / {count}
         </span>
         {count > 1 ? <FocusCarouselNav count={count} index={index} onIndexChange={setIndex} /> : <span />}
-        <span>Esc to return</span>
+        <span className="content-hint">Esc to return</span>
       </footer>
     </div>
   )

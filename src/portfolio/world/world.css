@@ -358,14 +358,21 @@
     opacity:var(--vis);
     /* Not yet reached: a little lower and smaller; it rises into place as the
        camera arrives and sinks away as it leaves. */
+    --s: calc(0.88 + 0.12 * var(--vis));
+    /* The centring translate comes BEFORE the perspective. Inside it, the
+       vanishing point sits at the box's own origin, half a card away from the
+       centre being placed, and depth then slides the card up and left by half
+       its size times the magnification — on a phone that pushed the deeper
+       cards off the left edge. Outside, it is a plain screen-space shift and
+       the card's centre lands exactly where cardSpots.ts says. */
     transform:
+      translate(-50%, -50%)
       perspective(1400px)
       translate3d(calc((var(--sx) + var(--jx,0)) * 1px),
                   calc((var(--sy) + var(--jy,0) + var(--d) * -260) * 1px),
                   calc((var(--jz,0) + var(--cz,0)) * 1px))
-      translate(-50%, -50%)
       rotate(var(--tilt,0deg))
-      scale(calc(0.88 + 0.12 * var(--vis)));
+      scale(var(--s));
     transform-origin:50% 50%;
     visibility:hidden; pointer-events:none;
     transition:box-shadow .5s var(--ease), background .4s var(--ease);
@@ -593,7 +600,10 @@
     .stage--front{ position:absolute; inset:0; left:0; top:0; margin:0; width:auto; height:auto; }
     .hero-type{ left:calc(34 * var(--u)); top:calc(120 * var(--u)); width:calc(692 * var(--u)); }
     .hero-name{ max-width:84vw; }
-    .card{ width:min(calc(var(--cw) * var(--u) * 1.6), 84vw); }
+    /* One column, so every card is drawn at its CSS size: the depth
+       magnification --k is divided back out of the scale. The authored depths
+       still drive the parallax; only the drawn size is normalised. */
+    .card{ width:min(calc(var(--cw) * var(--u) * 1.9), 84vw); --s: calc((0.88 + 0.12 * var(--vis)) / var(--k, 1)); }
     .ribbon{ left:calc(14 * var(--u)); top:calc(14 * var(--u)); padding:calc(14 * var(--u)) calc(22 * var(--u)) calc(14 * var(--u)) calc(18 * var(--u)); gap:calc(14 * var(--u)); }
     .ribbon-label{ font-size:calc(17 * var(--u)); }
     .ribbon-hint{ font-size:calc(13 * var(--u)); }
@@ -603,7 +613,12 @@
     .content{ padding:calc(26 * var(--u)) calc(26 * var(--u)) calc(20 * var(--u)); }
     .content-title{ font-size:calc(40 * var(--u)); }
     .content-kicker, .content-foot{ font-size:calc(15 * var(--u)); }
-    .content{ --step: 90vw; --cardw: 86vw; --cardh: 60svh; }
+    .content{ --step: 90vw; --cardw: 86vw; --cardh: 70svh; }
+    /* The footer is 86vw wide here: the counter was wrapping onto two lines
+       and the keyboard hint ran into the next arrow. There is no Esc key on a
+       phone; the close button and a tap outside are the way out. */
+    .content-foot{ white-space:nowrap; }
+    .content-hint{ display:none; }
     .fc-item{ padding:calc(40 * var(--u)) calc(40 * var(--u)) calc(34 * var(--u)); }
     .fc-title{ font-size:calc(40 * var(--u)); }
     .fc-body{ font-size:calc(21 * var(--u)); line-height:calc(31 * var(--u)); }
@@ -620,3 +635,26 @@
     opacity:var(--vis); pointer-events:none;
   }
   .closing svg{ display:block; max-width:80vw; height:auto; overflow:visible; }
+
+  /* ── type floors on narrow screens ──────────────────────────────────────
+     The design unit scales with width, and at 390px it is 0.51px: the
+     carousel body measured 10.8px and a landing card teaser 6.9px on a phone.
+     These floors keep every line readable at the small end without touching
+     the desktop composition, where the unit is large enough on its own. */
+  @media (max-width:900px){
+    .hero-role{ font-size:max(12px, calc(15 * var(--u))); }
+    .ribbon-label{ font-size:max(12px, calc(17 * var(--u))); }
+    .ribbon-hint{ font-size:max(10px, calc(13 * var(--u))); }
+    .card-label{ font-size:max(11px, calc(12.5 * var(--u))); }
+    .card-title{ font-size:max(18px, calc(25 * var(--u))); line-height:1.15; }
+    .card-teaser{ font-size:max(13px, calc(13.5 * var(--u))); line-height:1.45; }
+    .card-open{ font-size:max(11px, calc(11.5 * var(--u))); }
+    .content-kicker, .content-foot, .menu-hint{ font-size:max(11px, calc(15 * var(--u))); }
+    .content-title{ font-size:max(22px, calc(40 * var(--u))); }
+    .fc-kicker, .fc-meta{ font-size:max(12px, calc(17 * var(--u))); }
+    .fc-title{ font-size:max(21px, calc(40 * var(--u))); }
+    .fc-body{ font-size:max(15px, calc(21 * var(--u))); line-height:1.5; }
+    .fc-tags span, .fc-links a{ font-size:max(12px, calc(16 * var(--u))); }
+    .fc-links a{ padding:max(8px, calc(12 * var(--u))) max(14px, calc(22 * var(--u))); }
+    .fc-dot{ min-width:10px; min-height:10px; }
+  }
