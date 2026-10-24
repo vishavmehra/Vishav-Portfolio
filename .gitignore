@@ -11,9 +11,20 @@ next-env.d.ts
 .playwright-mcp/
 
 # local tool state, not project source
-.claude/settings.local.json
+.claude/
 .remember/
 .impeccable/
+
+# The repository holds the application and its README, nothing else. Notes,
+# planning files, design docs and references, Blender sources, asset tooling
+# and backups stay on disk only.
+*.md
+!/README.md
+/docs/
+/design/
+/art/
+/tools/
+/.backup/
 
 # downloaded reference material, kept out of the repo and off the public path
 .reference/

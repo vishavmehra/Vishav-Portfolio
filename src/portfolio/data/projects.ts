@@ -15,8 +15,8 @@ export const PROJECTS: readonly ProjectEntry[] = [
   /*
    * Repository-derived entries. Facts below come from each repository's own
    * README and metadata (description, languages, homepage) as read on
-   * 2026-10-24, and from public/resume/resume.md where it documents the
-   * project. Nothing is inferred beyond what those state.
+   * 2026-10-24, and from the résumé where it documents the project.
+   * Nothing is inferred beyond what those state.
    */
   {
     id: 'researchx',
