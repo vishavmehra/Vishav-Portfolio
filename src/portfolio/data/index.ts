@@ -8,7 +8,7 @@
 export { ABOUT, PROFILE } from './profile'
 export { EDUCATION } from './education'
 export { EXPERIENCE } from './experience'
-export { PROJECTS } from './projects'
+export { PROJECTS, PROJECTS_BY_RECENCY } from './projects'
 export { SKILLS } from './skills'
 export { ACHIEVEMENTS } from './achievements'
 export { CONTACT_LINKS } from './links'

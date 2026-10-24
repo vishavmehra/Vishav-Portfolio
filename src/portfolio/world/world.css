@@ -438,12 +438,11 @@
     width:min(calc(520 * var(--u)), 78vw);
     height:min(calc(460 * var(--u)), 62svh);
     padding:calc(10 * var(--u)) 0;
-    background:linear-gradient(165deg, rgba(30,40,29,.94) 0%, rgba(13,19,13,.96) 100%);
-    border:1px solid rgba(242,235,221,.12);
-    border-radius:calc(28 * var(--u));
-    box-shadow:0 calc(30 * var(--u)) calc(70 * var(--u)) rgba(3,6,3,.55);
     animation:rise-in .45s var(--ease-out) both;
   }
+  /* The wheel floats straight over the world; a shadow under the type keeps
+     it legible against the moss without a box behind it. */
+  .menu [role="option"]{ text-shadow:0 2px 14px rgba(0,0,0,.75), 0 0 2px rgba(0,0,0,.6); }
   .menu-hint{
     margin-top:calc(14 * var(--u)); padding-left:calc(6 * var(--u));
     font-size:calc(11 * var(--u)); letter-spacing:.26em; text-transform:uppercase;
@@ -456,7 +455,11 @@
      every frame, and the darkening alone separates the content enough. */
   .content{
     position:absolute; inset:0; z-index:6;
-    display:flex; flex-direction:column;
+    display:flex; flex-direction:column; align-items:center;
+    /* One centred column: header, card and controls share the card width. */
+    --cardw: min(calc(560 * var(--u)), 86vw);
+    --step: calc(var(--cardw) * 1.06);
+    --cardh: min(calc(540 * var(--u)), 64svh);
     padding:calc(34 * var(--u)) calc(40 * var(--u)) calc(24 * var(--u));
     background:radial-gradient(120% 90% at 50% 50%, rgba(18,24,16,.72) 0%, rgba(18,24,16,.86) 100%);
     animation:content-in .45s var(--ease-out) both;
@@ -464,8 +467,8 @@
   @keyframes content-in{ from{ opacity:0; } to{ opacity:1; } }
 
   .content-head{
-    position:relative; flex:0 0 auto;
-    padding:0 calc(58 * var(--u)) 0 calc(6 * var(--u));
+    position:relative; flex:0 0 auto; width:var(--cardw);
+    padding:0 calc(58 * var(--u)) 0 0;
     animation:rise-in .6s var(--ease-out) both;
   }
   @keyframes rise-in{ from{ opacity:0; transform:translateY(calc(16 * var(--u))); } to{ opacity:1; transform:none; } }
@@ -482,8 +485,8 @@
   .content-close:hover, .content-close:focus-visible{ background:rgba(255,255,255,.14); color:var(--ink); }
 
   .content-foot{
-    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
-    padding:calc(10 * var(--u)) calc(6 * var(--u)) 0;
+    flex:0 0 auto; width:var(--cardw); display:flex; align-items:center; justify-content:space-between;
+    padding:calc(10 * var(--u)) 0 0;
     font-size:calc(11 * var(--u)); letter-spacing:.26em; text-transform:uppercase; color:var(--ink-faint);
   }
 
@@ -494,13 +497,8 @@
      moves the whole set by writing one variable on the track and React is
      only involved when the index actually changes. */
   .fc{
-    position:relative; flex:1 1 auto; min-height:0;
+    position:relative; flex:1 1 auto; min-height:0; width:100%;
     display:flex; align-items:center;
-    /* Step is nearly a full card, so neighbours sit beside the focused card
-       rather than tucked under it. */
-    --step: min(calc(438 * var(--u)), 62vw);
-    --cardw: min(calc(440 * var(--u)), 82vw);
-    --cardh: min(calc(520 * var(--u)), 66svh);
     perspective:1400px;
     touch-action:pan-y;
     user-select:none; -webkit-user-select:none;
@@ -526,8 +524,8 @@
       translate(-50%, -50%)
       translate3d(calc(var(--o) * var(--step)), 0, calc(var(--ao) * -160px))
       rotateY(calc(var(--o) * -8deg))
-      scale(calc(1 - min(var(--ao), 2) * 0.1));
-    opacity:calc(1 - min(var(--ao), 2.4) * 0.4);
+      scale(calc(1 - min(var(--ao), 2) * 0.14));
+    opacity:calc(1 - min(var(--ao), 1.8) * 0.55);
     transition:transform .55s var(--ease-out), opacity .45s var(--ease);
     cursor:grab;
   }
@@ -541,6 +539,7 @@
   .fc-body{
     margin-top:calc(18 * var(--u)); flex:0 1 auto; min-height:0;
     font-size:calc(16.5 * var(--u)); line-height:calc(25 * var(--u)); color:rgba(242,235,221,.84);
+    text-align:justify; text-align-last:left; hyphens:auto;
     overflow:auto; overscroll-behavior:contain; padding-right:calc(4 * var(--u));
     scrollbar-width:thin; scrollbar-color:rgba(242,235,221,.25) transparent;
   }
@@ -604,10 +603,20 @@
     .content{ padding:calc(26 * var(--u)) calc(26 * var(--u)) calc(20 * var(--u)); }
     .content-title{ font-size:calc(40 * var(--u)); }
     .content-kicker, .content-foot{ font-size:calc(15 * var(--u)); }
-    .fc{ --step: 78vw; --cardw: 84vw; --cardh: 62svh; }
+    .content{ --step: 90vw; --cardw: 86vw; --cardh: 60svh; }
     .fc-item{ padding:calc(40 * var(--u)) calc(40 * var(--u)) calc(34 * var(--u)); }
     .fc-title{ font-size:calc(40 * var(--u)); }
     .fc-body{ font-size:calc(21 * var(--u)); line-height:calc(31 * var(--u)); }
     .fc-kicker, .fc-meta{ font-size:calc(17 * var(--u)); }
     .fc-tags span, .fc-links a{ font-size:calc(16 * var(--u)); }
   }
+
+  /* ── the closing (z 4) ──────────────────────────────────────────────── */
+  .closing{
+    --d: calc(1 - var(--j, 0));
+    --vis: clamp(0, calc(1.6 - var(--d) * 12), 1);
+    position:absolute; z-index:4; left:50%; top:46%;
+    transform:translate(-50%, -50%) translateY(calc(var(--d) * 120px));
+    opacity:var(--vis); pointer-events:none;
+  }
+  .closing svg{ display:block; max-width:80vw; height:auto; overflow:visible; }

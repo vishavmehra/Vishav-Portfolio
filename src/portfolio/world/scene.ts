@@ -2504,12 +2504,15 @@ export function mountWorldScene(): () => void {
     /* Publish the camera to CSS so the DOM layers travel with the world.
        Written only when they actually change: at rest this is an idle page and
        should not be invalidating style every frame. */
-    if (jp !== lastJp) {
-      lastJp = jp;
+    /* Compared after rounding: every write here invalidates style for the
+       whole DOM layer, so a change too small to show must not cost a frame. */
+    var jq = Math.round(jp * 10000) / 10000;
+    if (jq !== lastJp) {
+      lastJp = jq;
       heroEl.style.setProperty('--jx', String(Math.round(-cam.x * 100) / 100));
       heroEl.style.setProperty('--jy', String(Math.round(cam.y * 100) / 100));
       heroEl.style.setProperty('--jz', String(Math.round((DIST - cam.z) * 100) / 100));
-      heroEl.style.setProperty('--j', String(Math.round(jp * 10000) / 10000));
+      heroEl.style.setProperty('--j', String(jq));
     }
 
     if (!REDUCED) {

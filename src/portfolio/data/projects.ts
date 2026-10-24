@@ -20,6 +20,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
    */
   {
     id: 'researchx',
+    updated: '2026-10-21',
     title: 'ResearchX',
     category: 'project',
     stack: ['Python', 'TypeScript', 'PostgreSQL', 'pgvector', 'Supabase', 'NVIDIA Nemotron', 'Render', 'Vercel'],
@@ -36,6 +37,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'grammar-scoring-engine',
+    updated: '2025-12-18',
     title: 'Grammar Scoring Engine',
     category: 'project',
     stack: ['Python', 'Wav2Vec 2.0', 'Transformers', 'Librosa', 'XGBoost', 'scikit-learn'],
@@ -49,6 +51,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'retrogroove',
+    updated: '2024-03-02',
     title: 'RetroGroove',
     category: 'project',
     stack: ['TailWind', 'ReactJs', 'NextJs', 'TypeScript', 'Shadcn', 'Supabase', 'PostgreSQL'],
@@ -64,6 +67,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'listing',
+    updated: '2024-10-15',
     title: 'Listing',
     category: 'project',
     stack: ['NextJs', 'Prisma', 'TailWind', 'TypeScript', 'PostgreSQL'],
@@ -79,6 +83,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'medisense-ai',
+    updated: '2026-09-30',
     title: 'MediSense-AI',
     category: 'project',
     stack: ['LLaMA', 'Python', 'Pinecone', 'Streamlit', 'LangChain', 'HuggingFace'],
@@ -91,6 +96,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'eye-controlled-wheelchair',
+    updated: '2025-05-04',
     title: 'Eye Controlled Wheelchair',
     category: 'research',
     stack: ['OpenCV', 'Dlib', 'PyQt5', 'Imutils', 'Scikit-image', 'Scikit-learn'],
@@ -106,6 +112,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'heart-attack-prediction',
+    updated: '2024-11-04',
     title: 'Heart-Attack-Prediction-Analysis',
     category: 'research',
     stack: ['PyCaret', 'Pandas', 'NumPy', 'Matplotlib', 'Scikit-Learn', 'Google Colab'],
@@ -121,6 +128,7 @@ export const PROJECTS: readonly ProjectEntry[] = [
   },
   {
     id: 'cross-domain-fake-news',
+    updated: '2026-10-16',
     title: 'Cross-Domain Fake News Detection',
     category: 'research',
     stack: ['PyTorch', 'BERT', 'RoBERTa', 'DistilBERT', 'Transformers', 'Scikit-learn'],
@@ -144,17 +152,13 @@ export const PROJECTS: readonly ProjectEntry[] = [
     ],
     // The résumé prints no link for this one.
   },
-  {
-    id: 'authors',
-    title: 'Authors',
-    category: 'project',
-    stack: ['Next.js', 'TypeScript'],
-    /* The repository README is Next.js starter material (resume.md §14), so
-       only what the repository itself shows is recorded here. */
-    points: ['A Next.js and TypeScript web application, deployed on Vercel.'],
-    links: [
-      { label: 'GitHub', href: 'https://github.com/vishavmehra/authors' },
-      { label: 'Live', href: 'https://authors-eight.vercel.app/' },
-    ],
-  },
 ] as const
+
+/**
+ * Most recent first, by the repository's last update. Entries without a
+ * repository date (the résumé-only research work) keep their order after the
+ * dated ones rather than being given a date they do not have.
+ */
+export const PROJECTS_BY_RECENCY: readonly ProjectEntry[] = [...PROJECTS].sort(
+  (a, b) => (b.updated ?? '').localeCompare(a.updated ?? ''),
+)

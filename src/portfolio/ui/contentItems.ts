@@ -4,8 +4,8 @@ import {
   CONTACT_LINKS,
   EDUCATION,
   EXPERIENCE,
-  PROJECTS,
   PROFILE,
+  PROJECTS_BY_RECENCY,
   SKILLS,
 } from '@/portfolio/data'
 import type { Link } from '@/portfolio/data/types'
@@ -52,8 +52,8 @@ const about: ContentSection = {
       id: 'profile',
       kicker: PROFILE.title,
       title: PROFILE.name,
-      meta: [EDUCATION[0]?.qualification, EDUCATION[0]?.institution].filter(Boolean).join(' · '),
-      points: ABOUT.focus,
+      meta: ABOUT.tagline,
+      points: ABOUT.summary ?? ABOUT.focus,
       links: CONTACT_LINKS,
     },
   ],
@@ -78,7 +78,7 @@ const projects: ContentSection = {
   id: 'projects',
   kicker: 'Projects',
   title: 'Things built',
-  cards: PROJECTS.map((project) => ({
+  cards: PROJECTS_BY_RECENCY.map((project) => ({
     id: project.id,
     kicker: project.category === 'research' ? 'Research' : 'Project',
     title: project.title,

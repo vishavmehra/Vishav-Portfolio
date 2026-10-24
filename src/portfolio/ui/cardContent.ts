@@ -1,4 +1,4 @@
-import { ABOUT, ACHIEVEMENTS, EDUCATION, EXPERIENCE, PROJECTS, SKILLS, VISUALS } from '@/portfolio/data'
+import { ABOUT, ACHIEVEMENTS, EDUCATION, EXPERIENCE, PROFILE, PROJECTS_BY_RECENCY, SKILLS, VISUALS } from '@/portfolio/data'
 /* `PortfolioVisual` lives with the visuals themselves; the barrel re-exports
    the value but not this type. */
 import type { PortfolioVisual } from '@/portfolio/data/visuals'
@@ -41,8 +41,8 @@ export const CARDS: readonly CardContent[] = [
   {
     id: 'about',
     label: 'About',
-    title: ABOUT.headline,
-    teaser: list(ABOUT.focus, 2),
+    title: PROFILE.name,
+    teaser: ABOUT.tagline ?? list(ABOUT.focus, 2),
     plate: VISUALS.about,
   },
   {
@@ -55,8 +55,8 @@ export const CARDS: readonly CardContent[] = [
   {
     id: 'projects',
     label: 'Projects',
-    title: `${PROJECTS.length} built`,
-    teaser: list([...new Set(PROJECTS.flatMap((p) => p.stack ?? []))], 3),
+    title: 'Things built',
+    teaser: list(PROJECTS_BY_RECENCY.map((p) => p.title), 2),
     plate: VISUALS.projects,
   },
   {
@@ -68,13 +68,13 @@ export const CARDS: readonly CardContent[] = [
   {
     id: 'skills',
     label: 'Skills',
-    title: `${SKILLS.reduce((n, g) => n + g.items.length, 0)} tools`,
+    title: 'What I work with',
     teaser: SKILLS.map((g) => g.group).join(' · '),
   },
   {
     id: 'achievements',
     label: 'Achievements',
-    title: `${ACHIEVEMENTS.length} recorded`,
+    title: 'What came of it',
     teaser: list(
       ACHIEVEMENTS.map((a) => a.title.split(' — ')[0]),
       2,

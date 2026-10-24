@@ -46,7 +46,17 @@ export function ContentView() {
   const count = section.cards.length
 
   return (
-    <div className="content" role="dialog" aria-modal="false" aria-label={section.kicker} ref={panel}>
+    <div
+      className="content"
+      role="dialog"
+      aria-modal="false"
+      aria-label={section.kicker}
+      ref={panel}
+      /* Anywhere that is not the card or its controls is the way out. */
+      onClick={(e) => {
+        if (!(e.target as HTMLElement).closest('.fc-item, .content-head, .content-foot')) select(null)
+      }}
+    >
       <header className="content-head">
         <p className="content-kicker">{section.kicker}</p>
         <h2 className="content-title">{section.title}</h2>

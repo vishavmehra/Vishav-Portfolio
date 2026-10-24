@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
+import { Closing } from '@/portfolio/ui/Closing'
 import { ContentView } from '@/portfolio/ui/ContentView'
 import { HeroType } from '@/portfolio/ui/HeroType'
 import { Navigator } from '@/portfolio/ui/Navigator'
@@ -98,6 +99,7 @@ export function WorldStage() {
           <HeroType />
           <WorldCards />
           <Navigator />
+          <Closing />
         </div>
 
         {/* Mounts only while a section is open, so it costs nothing on the

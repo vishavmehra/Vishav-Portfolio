@@ -166,6 +166,11 @@ export function stepJourney(dt: number): number {
   const rate = target === null ? 12 : 3.2
   const k = 1 - Math.exp(-rate * Math.min(dt, 0.1))
   progress += (wanted - progress) * k
+  /* Exponential easing never arrives on its own, and a progress that keeps
+     changing by 1e-9 made the scene republish its CSS variables on every
+     frame — style and layout for the whole DOM layer, sixty times a second,
+     measured as 50-96ms long tasks on an idle page. Snap when close. */
+  if (Math.abs(wanted - progress) < 0.0002) progress = wanted
 
   if (target !== null && Math.abs(target - progress) < 0.0005) {
     progress = target

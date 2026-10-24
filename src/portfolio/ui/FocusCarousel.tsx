@@ -28,7 +28,7 @@ interface Props {
 }
 
 /** Distance in cards beyond which an item is not shown at all. */
-const VISIBLE = 2
+const VISIBLE = 1
 
 export function FocusCarousel({ cards, index, onIndexChange, label }: Props) {
   const track = useRef<HTMLDivElement>(null)
