@@ -52,8 +52,9 @@ const about: ContentSection = {
       id: 'profile',
       kicker: PROFILE.title,
       title: PROFILE.name,
-      meta: ABOUT.tagline,
-      points: ABOUT.summary ?? ABOUT.focus,
+      /* The bio is one paragraph in his own words; the facts live in the
+         other sections, so nothing else is listed here. */
+      points: ABOUT.bio ? [ABOUT.bio] : ABOUT.focus,
       links: CONTACT_LINKS,
     },
   ],

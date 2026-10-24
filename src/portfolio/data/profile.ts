@@ -30,18 +30,11 @@ export const PROFILE: Profile = {
  */
 export const ABOUT: About = {
   headline: 'Software Engineer',
-  /* Wording requested by the owner on 2026-10-24. Every clause restates a
-     fact recorded elsewhere in this data — the role in experience.ts, the
-     project domains in projects.ts, the honours in achievements.ts — so the
-     About makes no claim the rest of the portfolio does not already make.
-     Degrees are deliberately absent here; they belong to Education. */
   tagline: 'Software engineer across machine learning, web and systems',
-  summary: [
-    'Software engineer at Siemens Digital Industries Software, working in C++ on NX.',
-    'Machine learning work spanning retrieval-grounded research assistants, transformer ensembles for fake-news detection, medical RAG and speech assessment.',
-    'Full-stack web development with Next.js, TypeScript and PostgreSQL / Supabase.',
-    'Google Summer of Code contributor and competitive programmer: Codeforces Candidate Master, LeetCode Guardian.',
-  ],
+  /* His own words, supplied on 2026-10-24 and recorded verbatim. Everything
+     factual about him lives in the other sections; this is the one place that
+     says how he works rather than what he has done. */
+  bio: 'I like figuring out how things work, pushing technology beyond its obvious use cases, and building things that solve genuinely difficult problems. From low level systems to AI agents, I’m drawn to the intersection of deep technical thinking and creative problem solving. I’m happiest when I’m exploring an unfamiliar idea, experimenting with it, and turning it into something real.',
   focus: [
     'Information Security and Privacy',
     'Network and Information Security',

@@ -44,12 +44,6 @@ export type About = {
   bio?: string
   /** One line under the name on the About card. */
   tagline?: string
-  /**
-   * The About card's points. Composed at the owner's request from facts that
-   * are recorded elsewhere in this data; no clause may state something the
-   * other files do not.
-   */
-  summary?: readonly string[]
 }
 
 export type EducationEntry = {
