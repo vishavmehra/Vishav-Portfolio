@@ -15,9 +15,12 @@ import type { ContentId } from '@/portfolio/state/selection'
  * The opened sections, built from the content.
  *
  * Presentation only: every string here is read from `src/portfolio/data`,
- * which is read from the résumé. A field the résumé does not state stays
- * absent — `meta`, `tags` and `links` are frequently undefined rather than
- * carrying a placeholder (CLAUDE.md §19, §62).
+ * which is read from the résumé and the repositories. A field the source does
+ * not state stays absent — `meta`, `tags` and `links` are frequently undefined
+ * rather than carrying a placeholder (CLAUDE.md §19, §62).
+ *
+ * `points` is a list on purpose: the cards read as bullet points, and a card
+ * with a single point renders it as one line rather than a one-item list.
  */
 export interface ContentCard {
   readonly id: string
@@ -25,7 +28,7 @@ export interface ContentCard {
   readonly title: string
   /** A date range, grade, or other short fact under the title. */
   readonly meta?: string
-  readonly body: string
+  readonly points: readonly string[]
   readonly tags?: readonly string[]
   readonly links?: readonly Link[]
 }
@@ -37,6 +40,9 @@ export interface ContentSection {
   readonly cards: readonly ContentCard[]
 }
 
+/* About is one card. ABOUT.bio is deliberately absent — the résumé has no
+   summary section — so the focus areas stand as the facts about him rather
+   than a paragraph written on his behalf. */
 const about: ContentSection = {
   id: 'about',
   kicker: 'About',
@@ -44,23 +50,12 @@ const about: ContentSection = {
   cards: [
     {
       id: 'profile',
-      kicker: 'Profile',
+      kicker: PROFILE.title,
       title: PROFILE.name,
-      meta: PROFILE.title,
-      /* ABOUT.bio is deliberately absent — the résumé has no summary section —
-         so the focus areas stand as the factual description rather than a
-         paragraph written on his behalf. */
-      body: ABOUT.focus.join(' · '),
+      meta: [EDUCATION[0]?.qualification, EDUCATION[0]?.institution].filter(Boolean).join(' · '),
+      points: ABOUT.focus,
       links: CONTACT_LINKS,
     },
-    ...SKILLS.map((group) => ({
-      id: `skills-${group.group}`,
-      kicker: 'Skills',
-      title: group.group,
-      meta: `${group.items.length} listed`,
-      body: group.items.join(' · '),
-      tags: group.items.slice(0, 6),
-    })),
   ],
 }
 
@@ -73,7 +68,7 @@ const experience: ContentSection = {
     kicker: role.role,
     title: role.organisation,
     meta: role.period,
-    body: role.points.join(' '),
+    points: role.points,
     tags: role.stack,
     links: role.links,
   })),
@@ -87,7 +82,7 @@ const projects: ContentSection = {
     id: project.id,
     kicker: project.category === 'research' ? 'Research' : 'Project',
     title: project.title,
-    body: project.points.join(' '),
+    points: project.points,
     tags: project.stack,
     links: project.links,
   })),
@@ -104,7 +99,21 @@ const education: ContentSection = {
     /* CGPA is optional because the résumé does not print one for every entry;
        an absent grade shows nothing rather than a dash. */
     meta: entry.cgpa ? `${entry.period} · CGPA ${entry.cgpa}` : entry.period,
-    body: [entry.specialisation, entry.place].filter(Boolean).join(' · '),
+    points: [entry.specialisation, entry.place].filter((s): s is string => Boolean(s)),
+  })),
+}
+
+/* One card per group the résumé lists, each group's items as the points. */
+const skills: ContentSection = {
+  id: 'skills',
+  kicker: 'Skills',
+  title: 'What I work with',
+  cards: SKILLS.map((group) => ({
+    id: `skills-${group.group}`,
+    kicker: 'Skills',
+    title: group.group,
+    meta: `${group.items.length} listed`,
+    points: group.items,
   })),
 }
 
@@ -116,7 +125,7 @@ const achievements: ContentSection = {
     id: entry.id,
     kicker: 'Achievement',
     title: entry.title,
-    body: entry.detail,
+    points: [entry.detail],
     links: entry.href ? [{ label: 'View', href: entry.href }] : undefined,
   })),
 }
@@ -126,5 +135,6 @@ export const SECTIONS: Record<ContentId, ContentSection> = {
   experience,
   projects,
   education,
+  skills,
   achievements,
 }

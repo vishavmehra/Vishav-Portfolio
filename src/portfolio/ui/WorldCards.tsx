@@ -51,7 +51,8 @@ const SPOTS: Record<string, Spot> = {
   experience: { dx: 300, dy: -10, cz: -100, tilt: 2.4, w: 262 },
   projects: { dx: -270, dy: 50, cz: 40, tilt: -2.2, w: 290 },
   education: { dx: 320, dy: 90, cz: -140, tilt: 3.0, w: 250 },
-  achievements: { dx: -30, dy: -110, cz: -70, tilt: -1.6, w: 244 },
+  skills: { dx: -300, dy: -70, cz: -90, tilt: 2.0, w: 252 },
+  achievements: { dx: 40, dy: -120, cz: -70, tilt: -1.6, w: 244 },
 }
 
 const ORDER: ChapterId[] = CHAPTERS.map((c) => c.id)

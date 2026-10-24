@@ -400,12 +400,11 @@
      chapter. Open, the wheel of chapters over a dimmed world. */
   .ribbon{
     position:absolute; z-index:5;
-    left:calc(18 * var(--u)); top:50%;
-    transform:translateY(-50%);
-    display:flex; flex-direction:column; align-items:center;
+    left:calc(22 * var(--u)); top:calc(22 * var(--u));
+    display:flex; flex-direction:row; align-items:center;
     gap:calc(12 * var(--u));
-    padding:calc(18 * var(--u)) calc(11 * var(--u));
-    min-width:44px;
+    padding:calc(11 * var(--u)) calc(18 * var(--u)) calc(11 * var(--u)) calc(14 * var(--u));
+    min-height:44px;
     background:rgba(17,24,17,.66);
     border:1px solid rgba(242,235,221,.12);
     border-radius:999px;
@@ -421,25 +420,29 @@
     border-radius:50%; background:rgba(190,206,170,.95);
     box-shadow:0 0 0 calc(4 * var(--u)) rgba(190,206,170,.16);
   }
-  .ribbon-label, .ribbon-hint{
-    writing-mode:vertical-rl; transform:rotate(180deg);
-    text-transform:uppercase; letter-spacing:.3em; white-space:nowrap;
-  }
+  .ribbon-label, .ribbon-hint{ text-transform:uppercase; letter-spacing:.3em; white-space:nowrap; }
   .ribbon-label{ font-size:calc(12.5 * var(--u)); color:#f2ebdd; }
   .ribbon-hint{ font-size:calc(10 * var(--u)); color:rgba(242,235,221,.42); }
 
+  /* No tinted sheet over the world: the layer is transparent and only exists
+     so a click outside the panel closes it. The wheel sits in its own dark
+     panel under the ribbon. */
   .menu{
     position:absolute; inset:0; z-index:7;
-    display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
-    padding-left:calc(70 * var(--u));
-    background:radial-gradient(110% 90% at 30% 50%, rgba(14,20,14,.74) 0%, rgba(14,20,14,.88) 100%);
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start;
+    padding:calc(84 * var(--u)) 0 0 calc(22 * var(--u));
+    background:transparent;
     pointer-events:auto;
-    animation:content-in .4s var(--ease-out) both;
   }
   .menu-wheel{
-    width:min(calc(620 * var(--u)), 78vw);
-    height:min(calc(600 * var(--u)), 74svh);
-    animation:rise-in .6s var(--ease-out) both;
+    width:min(calc(520 * var(--u)), 78vw);
+    height:min(calc(460 * var(--u)), 62svh);
+    padding:calc(10 * var(--u)) 0;
+    background:linear-gradient(165deg, rgba(30,40,29,.94) 0%, rgba(13,19,13,.96) 100%);
+    border:1px solid rgba(242,235,221,.12);
+    border-radius:calc(28 * var(--u));
+    box-shadow:0 calc(30 * var(--u)) calc(70 * var(--u)) rgba(3,6,3,.55);
+    animation:rise-in .45s var(--ease-out) both;
   }
   .menu-hint{
     margin-top:calc(14 * var(--u)); padding-left:calc(6 * var(--u));
@@ -509,9 +512,11 @@
     --o: calc(var(--i) - var(--index) + var(--drag));
     --ao: max(var(--o), calc(-1 * var(--o)));
     position:absolute; left:50%; top:50%;
-    width:var(--cardw); height:var(--cardh);
+    /* Sized by what it says, up to a ceiling; a short card is short, a long
+       one scrolls inside itself. */
+    width:var(--cardw); height:auto; max-height:var(--cardh);
     display:flex; flex-direction:column;
-    padding:calc(34 * var(--u)) calc(34 * var(--u)) calc(28 * var(--u));
+    padding:calc(34 * var(--u)) calc(36 * var(--u)) calc(30 * var(--u));
     background:linear-gradient(165deg, rgba(38,50,36,.96) 0%, rgba(16,23,16,.97) 100%);
     color:#f2ebdd;
     border:1px solid rgba(242,235,221,.12);
@@ -531,15 +536,19 @@
   .fc-item.is-focus{ cursor:default; }
 
   .fc-kicker{ font-size:calc(12 * var(--u)); letter-spacing:.26em; text-transform:uppercase; color:rgba(190,206,170,.8); }
-  .fc-title{ margin-top:calc(8 * var(--u)); font-size:calc(28 * var(--u)); line-height:1.08; font-weight:400; letter-spacing:calc(-0.5 * var(--u)); color:#f2ebdd; }
-  .fc-meta{ margin-top:calc(6 * var(--u)); font-size:calc(13 * var(--u)); color:rgba(242,235,221,.55); }
+  .fc-title{ margin-top:calc(8 * var(--u)); font-size:calc(33 * var(--u)); line-height:1.06; font-weight:400; letter-spacing:calc(-0.6 * var(--u)); color:#f2ebdd; }
+  .fc-meta{ margin-top:calc(7 * var(--u)); font-size:calc(14 * var(--u)); color:rgba(242,235,221,.55); }
   .fc-body{
-    margin-top:calc(16 * var(--u)); flex:1 1 auto; min-height:0;
-    font-size:calc(14.5 * var(--u)); line-height:calc(22 * var(--u)); color:rgba(242,235,221,.8);
+    margin-top:calc(18 * var(--u)); flex:0 1 auto; min-height:0;
+    font-size:calc(16.5 * var(--u)); line-height:calc(25 * var(--u)); color:rgba(242,235,221,.84);
     overflow:auto; overscroll-behavior:contain; padding-right:calc(4 * var(--u));
     scrollbar-width:thin; scrollbar-color:rgba(242,235,221,.25) transparent;
   }
-  .fc-tags{ display:flex; flex-wrap:wrap; gap:calc(6 * var(--u)); margin-top:calc(14 * var(--u)); }
+  .fc-body p{ margin:0; }
+  .fc-points{ margin:0; padding-left:calc(20 * var(--u)); display:grid; gap:calc(9 * var(--u)); }
+  .fc-points li{ padding-left:calc(4 * var(--u)); }
+  .fc-points li::marker{ color:rgba(190,206,170,.9); }
+  .fc-tags{ display:flex; flex-wrap:wrap; gap:calc(6 * var(--u)); margin-top:calc(16 * var(--u)); }
   .fc-tags span{
     font-size:calc(11.5 * var(--u)); letter-spacing:.06em;
     padding:calc(5 * var(--u)) calc(10 * var(--u));
@@ -586,11 +595,11 @@
     .hero-type{ left:calc(34 * var(--u)); top:calc(120 * var(--u)); width:calc(692 * var(--u)); }
     .hero-name{ max-width:84vw; }
     .card{ width:min(calc(var(--cw) * var(--u) * 1.6), 84vw); }
-    .ribbon{ left:calc(14 * var(--u)); padding:calc(22 * var(--u)) calc(14 * var(--u)); gap:calc(16 * var(--u)); }
+    .ribbon{ left:calc(14 * var(--u)); top:calc(14 * var(--u)); padding:calc(14 * var(--u)) calc(22 * var(--u)) calc(14 * var(--u)) calc(18 * var(--u)); gap:calc(14 * var(--u)); }
     .ribbon-label{ font-size:calc(17 * var(--u)); }
     .ribbon-hint{ font-size:calc(13 * var(--u)); }
-    .menu{ padding-left:calc(40 * var(--u)); }
-    .menu-wheel{ width:84vw; height:66svh; }
+    .menu{ padding:calc(96 * var(--u)) 0 0 calc(14 * var(--u)); }
+    .menu-wheel{ width:88vw; height:56svh; }
     .menu-hint{ font-size:calc(14 * var(--u)); }
     .content{ padding:calc(26 * var(--u)) calc(26 * var(--u)) calc(20 * var(--u)); }
     .content-title{ font-size:calc(40 * var(--u)); }

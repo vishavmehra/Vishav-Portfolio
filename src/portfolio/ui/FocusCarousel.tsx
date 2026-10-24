@@ -156,7 +156,15 @@ export function FocusCarousel({ cards, index, onIndexChange, label }: Props) {
               <h3 className="fc-title">{card.title}</h3>
               {card.meta ? <p className="fc-meta">{card.meta}</p> : null}
               <div className="fc-body" tabIndex={focus ? 0 : -1}>
-                {card.body}
+                {card.points.length > 1 ? (
+                  <ul className="fc-points">
+                    {card.points.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{card.points[0]}</p>
+                )}
               </div>
               {card.tags?.length ? (
                 <div className="fc-tags" aria-label="Technologies">

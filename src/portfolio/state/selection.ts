@@ -18,6 +18,7 @@ export const CONTENT_IDS = [
   'experience',
   'projects',
   'education',
+  'skills',
   'achievements',
 ] as const
 

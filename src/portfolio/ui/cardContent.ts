@@ -1,4 +1,4 @@
-import { ABOUT, ACHIEVEMENTS, EDUCATION, EXPERIENCE, PROJECTS, VISUALS } from '@/portfolio/data'
+import { ABOUT, ACHIEVEMENTS, EDUCATION, EXPERIENCE, PROJECTS, SKILLS, VISUALS } from '@/portfolio/data'
 /* `PortfolioVisual` lives with the visuals themselves; the barrel re-exports
    the value but not this type. */
 import type { PortfolioVisual } from '@/portfolio/data/visuals'
@@ -64,6 +64,12 @@ export const CARDS: readonly CardContent[] = [
     label: 'Education',
     title: degrees.join(' · '),
     teaser: EDUCATION[0].specialisation ?? EDUCATION[0].institution,
+  },
+  {
+    id: 'skills',
+    label: 'Skills',
+    title: `${SKILLS.reduce((n, g) => n + g.items.length, 0)} tools`,
+    teaser: SKILLS.map((g) => g.group).join(' · '),
   },
   {
     id: 'achievements',
