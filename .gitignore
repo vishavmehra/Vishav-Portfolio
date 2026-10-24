@@ -17,3 +17,6 @@ next-env.d.ts
 
 # downloaded reference material, kept out of the repo and off the public path
 .reference/
+
+.vercel
+.env*
